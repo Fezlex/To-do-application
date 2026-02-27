@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Tasks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0d0d1a 0%, #111128 50%, #0d1a1a 100%);
+      color: #f0f0f0;
+      min-height: 100vh;
+      padding: 40px 24px;
+    }
+
+    /* Ambient blobs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      top: 80px; right: 120px;
+      width: 400px; height: 400px;
+      background: radial-gradient(ellipse, rgba(92,77,138,0.15) 0%, transparent 70%);
+    }
+    body::after {
+      bottom: 100px; left: 80px;
+      width: 300px; height: 300px;
+      background: radial-gradient(ellipse, rgba(0,120,212,0.1) 0%, transparent 70%);
+    }
+
+    #app { max-width: 860px; margin: 0 auto; position: relative; z-index: 1; }
+
+    /* Header */
+    .header { margin-bottom: 36px; }
+    .header-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; }
+    h1 {
+      font-size: 32px; font-weight: 800; letter-spacing: -1px;
+      background: linear-gradient(135deg, #e0e0ff, #a0b8ff);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .subtitle { color: #666; font-size: 14px; margin-top: 6px; }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+
+    /* Stats */
+    .stats { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+    .stat-card {
+      background: rgba(255,255,255,0.04); border-radius: 10px; padding: 10px 18px;
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .stat-value { font-size: 22px; font-weight: 800; }
+    .stat-label { font-size: 11px; color: #666; margin-top: 2px; }
+
+    /* Buttons */
+    .btn {
+      border: none; border-radius: 8px; padding: 8px 18px;
+      font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-ghost {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      color: #aaa;
+    }
+    .btn-primary { background: linear-gradient(135deg, #5c4d8a, #7c6daa); color: #fff; }
+    .btn-jira { background: #0052cc; color: #fff; width: 100%; margin-top: 4px; }
+    .btn-ms { background: #0078d4; color: #fff; width: 100%; margin-top: 4px; }
+    .btn-sm {
+      background: none; border: 1px solid rgba(255,255,255,0.15); color: #aaa;
+      border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 12px; font-family: inherit;
+    }
+
+    /* Connection panels */
+    .connections { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 32px; }
+    .conn-panel {
+      flex: 1; min-width: 260px; border-radius: 12px; padding: 20px;
+    }
+    .conn-panel.jira {
+      background: rgba(0,82,204,0.12);
+      border: 1px solid rgba(0,82,204,0.3);
+    }
+    .conn-panel.jira.connected { border-color: #0052cc; }
+    .conn-panel.ms {
+      background: rgba(0,120,212,0.1);
+      border: 1px solid rgba(0,120,212,0.3);
+    }
+    .conn-panel.ms.connected { border-color: #0078d4; }
+    .conn-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .conn-title { font-weight: 700; font-size: 15px; }
+    .conn-title.jira { color: #6b9cff; }
+    .conn-title.ms { color: #5ab0ff; }
+    .conn-title.inactive { color: #aaa; }
+    .conn-form { display: flex; flex-direction: column; gap: 12px; }
+    .conn-note { font-size: 10px; color: #666; }
+    .conn-note a { color: #6b9cff; }
+    .conn-desc { font-size: 12px; color: #5c8fff; }
+    .conn-desc.ms { color: #5ab0ff; }
+
+    /* Form inputs */
+    label { font-size: 11px; color: #888; display: block; margin-bottom: 4px; letter-spacing: 0.5px; }
+    label a { color: #6b9cff; font-size: 10px; margin-left: 4px; }
+    input, textarea, select {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px; color: #f0f0f0; padding: 10px 12px; font-size: 13px;
+      width: 100%; outline: none; font-family: inherit;
+    }
+    input::placeholder, textarea::placeholder { color: #555; }
+    select option { background: #1a1a2e; }
+    textarea { resize: vertical; }
+
+    /* Errors */
+    .errors {
+      margin-bottom: 20px; background: rgba(255,59,48,0.1);
+      border: 1px solid rgba(255,59,48,0.3); border-radius: 10px; padding: 12px 16px;
+    }
+    .error-item { font-size: 13px; color: #ff6b6b; }
+
+    /* Filter bar */
+    .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .filter-bar input { flex: 1; min-width: 180px; padding: 8px 14px; }
+    .filter-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter-btn {
+      background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #888;
+      border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: 12px; font-family: inherit;
+      transition: all 0.15s;
+    }
+    .filter-btn.active { background: rgba(255,255,255,0.12); color: #f0f0f0; font-weight: 600; }
+    .filter-bar select {
+      width: auto; padding: 7px 12px; font-size: 12px; cursor: pointer; color: #888;
+    }
+
+    /* Task cards */
+    .task-card {
+      background: rgba(255,255,255,0.04); border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 14px 16px; margin-bottom: 8px; transition: background 0.2s;
+    }
+    .task-card:hover { background: rgba(255,255,255,0.08); }
+    .task-card.overdue { border-color: rgba(255,59,48,0.4); }
+    .task-inner { display: flex; align-items: flex-start; gap: 10px; }
+    .priority-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .task-body { flex: 1; min-width: 0; }
+    .task-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+    .source-badge {
+      font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px;
+      letter-spacing: 1px; font-family: monospace; color: #fff;
+    }
+    .task-key { font-size: 11px; color: #6b9cff; font-family: monospace; }
+    .status-pill {
+      font-size: 10px; color: #aaa; background: rgba(255,255,255,0.06);
+      padding: 1px 7px; border-radius: 99px;
+    }
+    .task-title { font-size: 14px; color: #f0f0f0; font-weight: 500; line-height: 1.4; margin-bottom: 6px; }
+    .task-title a { color: inherit; text-decoration: none; }
+    .task-title a:hover { color: #6b9cff; }
+    .task-footer { display: flex; gap: 12px; font-size: 11px; color: #888; flex-wrap: wrap; }
+    .due-overdue { color: #ff3b30; }
+    .due-today { color: #ff9500; }
+
+    /* Empty state */
+    .empty { text-align: center; color: #555; padding: 60px 0; }
+    .empty-icon { font-size: 40px; margin-bottom: 16px; }
+    .empty-title { font-size: 16px; font-weight: 600; color: #666; }
+    .empty-sub { font-size: 13px; color: #444; margin-top: 8px; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+    }
+    .modal {
+      background: #1a1a2e; border-radius: 16px; padding: 28px;
+      width: 100%; max-width: 460px; border: 1px solid rgba(255,255,255,0.12);
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-header h3 { font-size: 18px; font-weight: 700; }
+    .modal-close { background: none; border: none; color: #888; font-size: 20px; cursor: pointer; }
+    .modal-form { display: flex; flex-direction: column; gap: 14px; }
+    .form-row { display: flex; gap: 12px; }
+    .form-row > div { flex: 1; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <h1>My Tasks</h1>
+        <p class="subtitle">All your work, in one place — read-only from connected sources</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost" id="refreshBtn" onclick="loadData()">⟳ Refresh</button>
+        <button class="btn btn-primary" onclick="openAddModal()">+ Add Task</button>
+      </div>
+    </div>
+    <div class="stats hidden" id="statsBar"></div>
+  </div>
+
+  <!-- Connections -->
+  <div class="connections">
+    <!-- Jira -->
+    <div class="conn-panel jira" id="jiraPanel">
+      <div class="conn-header">
+        <span class="conn-title inactive" id="jiraTitle">Connect Jira</span>
+        <button class="btn-sm" id="jiraToggleBtn" onclick="toggleSection('jiraForm')">Setup</button>
+      </div>
+      <p class="conn-desc hidden" id="jiraDesc">Fetching issues assigned to you.</p>
+      <div class="conn-form hidden" id="jiraForm">
+        <div style="background:rgba(255,200,0,0.07);border:1px solid rgba(255,200,0,0.2);border-radius:8px;padding:10px 12px;font-size:12px;color:#cca800;line-height:1.5;">
+          ⚠ <strong>CORS notice:</strong> Browsers block direct Jira API calls from local files.
+          Run the included <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:3px;">jira-proxy.js</code> locally first, then set the proxy URL below.
+          <a href="#" onclick="document.getElementById('proxyInstructions').classList.toggle('hidden');return false;" style="color:#ffcc00;margin-left:4px;">How? ↓</a>
+        </div>
+        <div class="hidden" id="proxyInstructions" style="background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;font-size:11px;color:#aaa;line-height:1.8;font-family:monospace;">
+          1. Make sure Node.js is installed (<a href="https://nodejs.org" target="_blank" style="color:#6b9cff;">nodejs.org</a>)<br/>
+          2. Save <strong>jira-proxy.js</strong> (provided alongside this file)<br/>
+          3. Open a terminal and run:<br/>
+          <span style="color:#7fff7f;">node jira-proxy.js</span><br/>
+          4. Leave that terminal open, then connect below.<br/>
+          The proxy runs only on your machine at <strong>localhost:3131</strong>.
+        </div>
+        <div>
+          <label>PROXY URL <span style="color:#666;font-size:10px;">(default: http://localhost:3131)</span></label>
+          <input id="jiraProxy" placeholder="http://localhost:3131" value="http://localhost:3131" />
+        </div>
+        <div>
+          <label>JIRA DOMAIN (e.g. yourcompany.atlassian.net)</label>
+          <input id="jiraDomain" placeholder="yourcompany.atlassian.net" />
+        </div>
+        <div>
+          <label>EMAIL</label>
+          <input id="jiraEmail" type="email" placeholder="you@company.com" />
+        </div>
+        <div>
+          <label>API TOKEN <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank">Generate ↗</a></label>
+          <input id="jiraToken" type="password" placeholder="Your Jira API token" />
+        </div>
+        <button class="btn btn-jira" onclick="connectJira()">Connect Jira</button>
+        <p class="conn-note">🔒 All credentials stay in your browser. The proxy only runs locally on your machine — no data leaves your computer.</p>
+      </div>
+    </div>
+
+    <!-- Microsoft -->
+    <div class="conn-panel ms" id="msPanel">
+      <div class="conn-header">
+        <span class="conn-title inactive" id="msTitle">Connect Microsoft 365</span>
+        <button class="btn-sm" id="msToggleBtn" onclick="toggleSection('msForm')">Setup</button>
+      </div>
+      <p class="conn-desc ms hidden" id="msDesc">Fetching To-Do tasks and calendar events.</p>
+      <div class="conn-form hidden" id="msForm">
+        <div>
+          <label>MS GRAPH ACCESS TOKEN</label>
+          <textarea id="msTokenInput" style="min-height:80px;font-family:monospace;font-size:11px;"
+            placeholder="Paste your Microsoft Graph access token here. Get one from https://developer.microsoft.com/graph/graph-explorer"></textarea>
+        </div>
+        <button class="btn btn-ms" onclick="connectMS()">Connect Microsoft 365</button>
+        <p class="conn-note">🔒 Token is used only in your browser to call Microsoft Graph directly.
+          <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank">Get a token ↗</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Errors -->
+  <div class="errors hidden" id="errorsBox"></div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar hidden" id="filterBar">
+    <input type="text" placeholder="🔍 Search tasks..." id="searchInput" oninput="renderTasks()" />
+    <div class="filter-btns">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+      <button class="filter-btn" data-filter="local" onclick="setFilter('local')">Local</button>
+      <button class="filter-btn" data-filter="jira" onclick="setFilter('jira')">Jira</button>
+      <button class="filter-btn" data-filter="outlook" onclick="setFilter('outlook')">To-Do</button>
+      <button class="filter-btn" data-filter="calendar" onclick="setFilter('calendar')">Calendar</button>
+    </div>
+    <select id="sortSelect" onchange="renderTasks()">
+      <option value="dueDate">Sort: Due Date</option>
+      <option value="priority">Sort: Priority</option>
+      <option value="title">Sort: Title</option>
+    </select>
+  </div>
+
+  <!-- Task list -->
+  <div id="taskList"></div>
+</div>
+
+<!-- Add Task Modal -->
+<div class="modal-overlay hidden" id="addModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Local Task</h3>
+      <button class="modal-close" onclick="closeAddModal()">✕</button>
+    </div>
+    <div class="modal-form">
+      <div>
+        <label>TASK TITLE *</label>
+        <input id="newTitle" placeholder="What needs to be done?" />
+      </div>
+      <div class="form-row">
+        <div>
+          <label>PROJECT / LIST</label>
+          <input id="newProject" placeholder="e.g. Personal" />
+        </div>
+        <div>
+          <label>PRIORITY</label>
+          <select id="newPriority">
+            <option>Highest</option><option>High</option>
+            <option selected>Medium</option><option>Low</option><option>Lowest</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>DUE DATE</label>
+        <input id="newDueDate" type="date" />
+      </div>
+      <div>
+        <label>NOTES</label>
+        <textarea id="newNotes" placeholder="Optional notes..." style="min-height:70px;"></textarea>
+      </div>
+      <button class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;" onclick="addLocalTask()">+ Add Task</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+let remoteTasks = [];
+let localTasks = [];
+let currentFilter = 'all';
+let jiraCreds = null;
+let msToken = null;
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+(function init() {
+  try { jiraCreds = JSON.parse(localStorage.getItem('tm_jira') || 'null'); } catch {}
+  try { msToken = localStorage.getItem('tm_ms_token') || null; } catch {}
+  try { localTasks = JSON.parse(localStorage.getItem('tm_local_tasks') || '[]'); } catch {}
+
+  if (jiraCreds) {
+    setJiraConnectedUI();
+  }
+  if (msToken) {
+    setMSConnectedUI();
+  }
+  if (jiraCreds || msToken) {
+    loadData();
+  }
+  renderTasks();
+})();
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+const todayStr = () => new Date().toISOString().split('T')[0];
+const isOverdue = d => d && new Date(d) < new Date(todayStr());
+const isDueToday = d => d && d.split('T')[0] === todayStr();
+const formatDate = d => {
+  if (!d) return null;
+  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+// ─── UI helpers ───────────────────────────────────────────────────────────────
+function toggleSection(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('hidden');
+  const isJira = id === 'jiraForm';
+  const btn = document.getElementById(isJira ? 'jiraToggleBtn' : 'msToggleBtn');
+  btn.textContent = el.classList.contains('hidden') ? 'Setup' : 'Hide';
+}
+
+function setJiraConnectedUI() {
+  document.getElementById('jiraPanel').classList.add('connected');
+  const title = document.getElementById('jiraTitle');
+  title.textContent = '✓ Jira Connected';
+  title.className = 'conn-title jira';
+  document.getElementById('jiraToggleBtn').classList.add('hidden');
+  document.getElementById('jiraForm').classList.add('hidden');
+  document.getElementById('jiraDesc').classList.remove('hidden');
+}
+
+function setMSConnectedUI() {
+  document.getElementById('msPanel').classList.add('connected');
+  const title = document.getElementById('msTitle');
+  title.textContent = '✓ Microsoft Connected';
+  title.className = 'conn-title ms';
+  document.getElementById('msToggleBtn').classList.add('hidden');
+  document.getElementById('msForm').classList.add('hidden');
+  document.getElementById('msDesc').classList.remove('hidden');
+}
+
+function showErrors(errs) {
+  const box = document.getElementById('errorsBox');
+  if (!errs.length) { box.classList.add('hidden'); return; }
+  box.innerHTML = errs.map(e => `<div class="error-item">⚠ ${esc(e)}</div>`).join('');
+  box.classList.remove('hidden');
+}
+
+// ─── Connect ──────────────────────────────────────────────────────────────────
+function connectJira() {
+  const domain = document.getElementById('jiraDomain').value.trim();
+  const email = document.getElementById('jiraEmail').value.trim();
+  const apiToken = document.getElementById('jiraToken').value.trim();
+  const proxyUrl = (document.getElementById('jiraProxy').value.trim() || 'http://localhost:3131').replace(/\/$/, '');
+  if (!domain || !email || !apiToken) { alert('Please fill in all Jira fields.'); return; }
+  jiraCreds = { domain, email, apiToken, proxyUrl };
+  localStorage.setItem('tm_jira', JSON.stringify(jiraCreds));
+  setJiraConnectedUI();
+  loadData();
+}
+
+function connectMS() {
+  const token = document.getElementById('msTokenInput').value.trim();
+  if (!token) { alert('Please paste your Microsoft Graph access token.'); return; }
+  msToken = token;
+  localStorage.setItem('tm_ms_token', msToken);
+  setMSConnectedUI();
+  loadData();
+}
+
+// ─── Fetchers ─────────────────────────────────────────────────────────────────
+async function fetchJiraIssues({ domain, email, apiToken, proxyUrl }) {
+  const base = proxyUrl || 'http://localhost:3131';
+  const jql = encodeURIComponent('assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC');
+  // Route through local proxy: proxy forwards to Jira and adds CORS headers
+  const url = `${base}/jira?domain=${encodeURIComponent(domain)}&jql=${jql}&maxResults=50&fields=summary,status,priority,duedate,project,issuetype`;
+  let res;
+  try {
+    res = await fetch(url, {
+      headers: { 'X-Jira-Email': email, 'X-Jira-Token': apiToken }
+    });
+  } catch (e) {
+    throw new Error('Cannot reach the local proxy. Make sure jira-proxy.js is running (node jira-proxy.js).');
+  }
+  if (!res.ok) throw new Error(`Jira error: ${res.status} ${res.statusText}`);
+  const data = await res.json();
+  return (data.issues || []).map(issue => ({
+    id: `jira-${issue.id}`, source: 'jira', key: issue.key,
+    title: issue.fields.summary,
+    status: issue.fields.status?.name || 'Unknown',
+    priority: issue.fields.priority?.name || 'Medium',
+    dueDate: issue.fields.duedate || null,
+    project: issue.fields.project?.name || '',
+    issueType: issue.fields.issuetype?.name || 'Task',
+    url: `https://${domain}/browse/${issue.key}`
+  }));
+}
+
+async function fetchMSTasks(accessToken) {
+  const res = await fetch('https://graph.microsoft.com/v1.0/me/todo/lists', {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  if (!res.ok) throw new Error(`MS Graph error: ${res.status}`);
+  const listsData = await res.json();
+  const lists = listsData.value || [];
+  const all = [];
+  for (const list of lists) {
+    const tRes = await fetch(
+      `https://graph.microsoft.com/v1.0/me/todo/lists/${list.id}/tasks?$filter=status ne 'completed'&$top=50`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (!tRes.ok) continue;
+    const tData = await tRes.json();
+    (tData.value || []).forEach(t => {
+      all.push({
+        id: `ms-${t.id}`, source: 'outlook', key: null, title: t.title,
+        status: t.status === 'inProgress' ? 'In Progress' : 'To Do',
+        priority: t.importance === 'high' ? 'High' : t.importance === 'low' ? 'Low' : 'Medium',
+        dueDate: t.dueDateTime?.dateTime?.split('T')[0] || null,
+        project: list.displayName, issueType: 'Task', url: null
+      });
+    });
+  }
+  return all;
+}
+
+async function fetchMSCalendar(accessToken) {
+  const start = new Date().toISOString();
+  const end = new Date(Date.now() + 7*24*60*60*1000).toISOString();
+  const res = await fetch(
+    `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${start}&endDateTime=${end}&$select=subject,start,end,webLink&$top=30`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.value || []).map(e => ({
+    id: `cal-${e.id}`, source: 'calendar', key: null, title: e.subject,
+    status: 'Upcoming', priority: 'Medium',
+    dueDate: e.start?.dateTime?.split('T')[0] || null,
+    project: 'Calendar', issueType: 'Event', url: e.webLink || null
+  }));
+}
+
+async function loadData() {
+  if (!jiraCreds && !msToken) return;
+  const btn = document.getElementById('refreshBtn');
+  btn.textContent = '⟳ Syncing...';
+  btn.disabled = true;
+  const errs = [];
+  let fetched = [];
+  if (jiraCreds) {
+    try { fetched = [...fetched, ...await fetchJiraIssues(jiraCreds)]; }
+    catch (e) { errs.push(`Jira: ${e.message}`); }
+  }
+  if (msToken) {
+    try { fetched = [...fetched, ...await fetchMSTasks(msToken)]; }
+    catch (e) { errs.push(`MS Tasks: ${e.message}`); }
+    try { fetched = [...fetched, ...await fetchMSCalendar(msToken)]; }
+    catch (e) { errs.push(`MS Calendar: ${e.message}`); }
+  }
+  remoteTasks = fetched;
+  showErrors(errs);
+  btn.textContent = '⟳ Refresh';
+  btn.disabled = false;
+  renderTasks();
+}
+
+// ─── Rendering ────────────────────────────────────────────────────────────────
+const SOURCE_CFG = {
+  jira:     { label: 'JIRA',     bg: '#0052cc' },
+  outlook:  { label: 'OUTLOOK',  bg: '#0078d4' },
+  calendar: { label: 'CALENDAR', bg: '#107c41' },
+  local:    { label: 'LOCAL',    bg: '#5c4d8a' },
+};
+const PRIORITY_COLORS = { Highest: '#ff3b30', High: '#ff9500', Medium: '#ffcc00', Low: '#34c759', Lowest: '#8e8e93' };
+const PRIORITY_ORDER = { Highest: 0, High: 1, Medium: 2, Low: 3, Lowest: 4 };
+
+function taskCardHTML(task) {
+  const overdue = isOverdue(task.dueDate);
+  const today_ = isDueToday(task.dueDate);
+  const src = SOURCE_CFG[task.source] || { label: task.source.toUpperCase(), bg: '#555' };
+  const pColor = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.Medium;
+  const titleHTML = task.url
+    ? `<a href="${esc(task.url)}" target="_blank" rel="noreferrer">${esc(task.title)}</a>`
+    : esc(task.title);
+  let dueHTML = '';
+  if (task.dueDate) {
+    const cls = overdue ? 'due-overdue' : today_ ? 'due-today' : '';
+    const prefix = overdue ? '⚠ Overdue · ' : today_ ? '⏰ Today · ' : '📅 ';
+    dueHTML = `<span class="${cls}">${prefix}${formatDate(task.dueDate)}</span>`;
+  }
+  return `
+    <div class="task-card${overdue ? ' overdue' : ''}">
+      <div class="task-inner">
+        <div class="priority-dot" style="background:${pColor}"></div>
+        <div class="task-body">
+          <div class="task-meta">
+            <span class="source-badge" style="background:${src.bg}">${src.label}</span>
+            ${task.key ? `<span class="task-key">${esc(task.key)}</span>` : ''}
+            <span class="status-pill">${esc(task.status)}</span>
+          </div>
+          <div class="task-title">${titleHTML}</div>
+          <div class="task-footer">
+            ${task.project ? `<span>📁 ${esc(task.project)}</span>` : ''}
+            ${dueHTML}
+            ${task.issueType ? `<span>🏷 ${esc(task.issueType)}</span>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderTasks() {
+  const all = [...localTasks, ...remoteTasks];
+  const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const sortBy = document.getElementById('sortSelect')?.value || 'dueDate';
+
+  const filtered = all.filter(t => {
+    if (currentFilter !== 'all' && t.source !== currentFilter) return false;
+    if (search && !t.title.toLowerCase().includes(search) && !(t.project||'').toLowerCase().includes(search)) return false;
+    return true;
+  }).sort((a, b) => {
+    if (sortBy === 'dueDate') {
+      if (!a.dueDate && !b.dueDate) return 0;
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return new Date(a.dueDate) - new Date(b.dueDate);
+    }
+    if (sortBy === 'priority') return (PRIORITY_ORDER[a.priority]||2) - (PRIORITY_ORDER[b.priority]||2);
+    return a.title.localeCompare(b.title);
+  });
+
+  // Stats
+  const statsBar = document.getElementById('statsBar');
+  if (all.length > 0) {
+    statsBar.classList.remove('hidden');
+    const overdue = all.filter(t => isOverdue(t.dueDate)).length;
+    const today_ = all.filter(t => isDueToday(t.dueDate)).length;
+    statsBar.innerHTML = [
+      { label: 'Total', value: all.length, color: '#a0b8ff' },
+      { label: 'Due Today', value: today_, color: '#ff9500' },
+      { label: 'Overdue', value: overdue, color: '#ff3b30' },
+    ].map(s => `<div class="stat-card"><div class="stat-value" style="color:${s.color}">${s.value}</div><div class="stat-label">${s.label}</div></div>`).join('');
+  } else {
+    statsBar.classList.add('hidden');
+  }
+
+  // Filter bar
+  const filterBar = document.getElementById('filterBar');
+  if (all.length > 0) filterBar.classList.remove('hidden');
+
+  // Task list
+  const list = document.getElementById('taskList');
+  if (filtered.length > 0) {
+    list.innerHTML = filtered.map(taskCardHTML).join('');
+  } else if (all.length > 0) {
+    list.innerHTML = `<div class="empty"><div>No tasks match your filter.</div></div>`;
+  } else if (!jiraCreds && !msToken) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">🔌</div><div class="empty-title">Connect Jira or Microsoft 365 above to get started.</div><div class="empty-sub">Or add a local task now.</div></div>`;
+  } else {
+    list.innerHTML = `<div class="empty"><div>Loading your tasks…</div></div>`;
+  }
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === f);
+  });
+  renderTasks();
+}
+
+// ─── Add Local Task ───────────────────────────────────────────────────────────
+function openAddModal() {
+  document.getElementById('addModal').classList.remove('hidden');
+}
+function closeAddModal() {
+  document.getElementById('addModal').classList.add('hidden');
+  ['newTitle','newProject','newDueDate','newNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('newPriority').value = 'Medium';
+}
+function addLocalTask() {
+  const title = document.getElementById('newTitle').value.trim();
+  if (!title) { alert('Please enter a task title.'); return; }
+  const task = {
+    id: `local-${Date.now()}`, source: 'local', key: null, title,
+    status: 'To Do',
+    priority: document.getElementById('newPriority').value,
+    dueDate: document.getElementById('newDueDate').value || null,
+    project: document.getElementById('newProject').value.trim() || 'Personal',
+    issueType: 'Task', url: null,
+    notes: document.getElementById('newNotes').value.trim(),
+  };
+  localTasks = [task, ...localTasks];
+  localStorage.setItem('tm_local_tasks', JSON.stringify(localTasks));
+  closeAddModal();
+  renderTasks();
+}
+
+// Close modal on overlay click
+document.getElementById('addModal').addEventListener('click', function(e) {
+  if (e.target === this) closeAddModal();
+});
+</script>
+</body>
+</html>
