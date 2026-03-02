@@ -318,6 +318,7 @@
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <button class="btn btn-secondary" id="refreshBtn" onclick="loadData()">&#x27F3; Oppdater</button>
+        <button class="btn btn-secondary" onclick="toggleDebug()" style="font-size:12px;">&#x1F50D; Diagnose</button>
         <button class="btn btn-primary" onclick="openAddModal()">+ Ny oppgave</button>
       </div>
     </div>
@@ -456,6 +457,12 @@
 
   <!-- Task table -->
   <div id="taskList"></div>
+
+  <!-- Debug panel -->
+  <div id="debugPanel" class="hidden" style="margin-bottom:24px;background:var(--white);border:1px solid var(--border);border-radius:6px;padding:16px;">
+    <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:10px;letter-spacing:0.5px;">DIAGNOSE-LOGG</div>
+    <div id="debugLog" style="max-height:240px;overflow-y:auto;font-family:monospace;"></div>
+  </div>
 
   <!-- Deploy guide -->
   <div class="deploy-section">
@@ -784,26 +791,55 @@ function showCsvStatus(msg, ok) {
   setTimeout(() => el.classList.add('hidden'), 5000);
 }
 
+// ─── Debug log ────────────────────────────────────────────────────────────────
+const debugLog = [];
+function dbg(msg, type) {
+  const time = new Date().toLocaleTimeString('no-NO');
+  debugLog.unshift({ time, msg, type: type || 'info' });
+  if (debugLog.length > 20) debugLog.pop();
+  const el = document.getElementById('debugPanel');
+  if (el && !el.classList.contains('hidden')) renderDebug();
+}
+function renderDebug() {
+  const el = document.getElementById('debugLog');
+  if (!el) return;
+  el.innerHTML = debugLog.map(d => {
+    const color = d.type === 'error' ? 'var(--red)' : d.type === 'ok' ? 'var(--green)' : 'var(--text-muted)';
+    return '<div style="padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;">' +
+      '<span style="color:var(--text-light);margin-right:8px;">' + d.time + '</span>' +
+      '<span style="color:' + color + ';">' + esc(d.msg) + '</span></div>';
+  }).join('');
+}
+function toggleDebug() {
+  const p = document.getElementById('debugPanel');
+  p.classList.toggle('hidden');
+  if (!p.classList.contains('hidden')) renderDebug();
+}
+
 // ─── Fetchers ─────────────────────────────────────────────────────────────────
 async function fetchJiraIssues({ domain, email, apiToken }) {
   const jql = encodeURIComponent('assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC');
   const jiraUrl = 'https://' + domain + '/rest/api/3/search?jql=' + jql + '&maxResults=50&fields=summary,status,priority,duedate,project,issuetype';
   const auth = 'Basic ' + btoa(email + ':' + apiToken);
   const proxies = [
-    'https://corsproxy.io/?url=' + encodeURIComponent(jiraUrl),
-    'https://api.allorigins.win/raw?url=' + encodeURIComponent(jiraUrl),
-    'https://thingproxy.freeboard.io/fetch/' + jiraUrl,
+    { name: 'corsproxy.io', url: 'https://corsproxy.io/?url=' + encodeURIComponent(jiraUrl) },
+    { name: 'allorigins',   url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(jiraUrl) },
+    { name: 'thingproxy',  url: 'https://thingproxy.freeboard.io/fetch/' + jiraUrl },
   ];
   let lastError = '';
-  for (const proxied of proxies) {
+  for (const proxy of proxies) {
     try {
-      const res = await fetch(proxied, { headers: { 'Authorization': auth, 'Accept': 'application/json' } });
-      if (res.status === 401) throw new Error('Jira-autentisering mislyktes \u2014 sjekk e-post og API-token.');
-      if (res.status === 403) throw new Error('Jira-tilgang nektet \u2014 tokenet mangler kanskje tillatelser.');
-      if (res.status === 404) throw new Error('Jira-domene ikke funnet \u2014 sjekk domenenavnet.');
-      if (!res.ok) throw new Error('Jira-feil: ' + res.status + ' ' + res.statusText);
+      dbg('Jira: prøver ' + proxy.name + '...');
+      const res = await fetch(proxy.url, { headers: { 'Authorization': auth, 'Accept': 'application/json' } });
+      dbg('Jira: ' + proxy.name + ' svarte HTTP ' + res.status);
+      if (res.status === 401) throw new Error('Autentisering mislyktes — sjekk e-post og API-token.');
+      if (res.status === 403) throw new Error('Tilgang nektet — tokenet mangler kanskje tillatelser.');
+      if (res.status === 404) throw new Error('Domene ikke funnet — sjekk domenenavnet.');
+      if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
       const data = await res.json();
-      return (data.issues || []).map(issue => ({
+      if (!data.issues) throw new Error('Uventet svar: ' + JSON.stringify(data).slice(0, 120));
+      dbg('Jira: hentet ' + data.issues.length + ' saker via ' + proxy.name, 'ok');
+      return data.issues.map(issue => ({
         id: 'jira-' + issue.id, source: 'jira', key: issue.key,
         title:     issue.fields.summary,
         status:    issue.fields.status?.name    || 'Ukjent',
@@ -814,26 +850,33 @@ async function fetchJiraIssues({ domain, email, apiToken }) {
         url: 'https://' + domain + '/browse/' + issue.key
       }));
     } catch (e) {
-      if (e.message.startsWith('Jira')) throw e;
+      dbg('Jira: ' + proxy.name + ' feilet — ' + e.message, 'error');
+      if (e.message.startsWith('Autentisering') || e.message.startsWith('Tilgang') || e.message.startsWith('Domene')) throw new Error('Jira: ' + e.message);
       lastError = e.message;
     }
   }
-  throw new Error('Kunne ikke n\u00E5 Jira. Nettverket ditt kan blokkere forespurte proxyer. (' + lastError + ')');
+  throw new Error('Jira: Alle proxyer feilet. (' + lastError + ')');
 }
 
 async function fetchMSTasks(accessToken) {
+  dbg('Microsoft: henter To-Do-lister...');
   const res = await fetch('https://graph.microsoft.com/v1.0/me/todo/lists', { headers: { Authorization: 'Bearer ' + accessToken } });
-  if (!res.ok) throw new Error('MS Graph-feil: ' + res.status);
+  if (res.status === 401) throw new Error('Microsoft: Token er utløpt — forny det via "Tilkoblinger".');
+  if (!res.ok) throw new Error('Microsoft To-Do: HTTP ' + res.status);
   const listsData = await res.json();
+  const lists = listsData.value || [];
+  dbg('Microsoft: fant ' + lists.length + ' To-Do-lister');
   const all = [];
-  for (const list of (listsData.value || [])) {
+  for (const list of lists) {
     const tRes = await fetch(
       'https://graph.microsoft.com/v1.0/me/todo/lists/' + list.id + '/tasks?$filter=status ne \'completed\'&$top=50',
       { headers: { Authorization: 'Bearer ' + accessToken } }
     );
-    if (!tRes.ok) continue;
+    if (!tRes.ok) { dbg('Microsoft: kunne ikke lese liste "' + list.displayName + '" — HTTP ' + tRes.status, 'error'); continue; }
     const tData = await tRes.json();
-    (tData.value || []).forEach(t => {
+    const tasks = tData.value || [];
+    dbg('Microsoft To-Do "' + list.displayName + '": ' + tasks.length + ' oppgaver', tasks.length ? 'ok' : 'info');
+    tasks.forEach(t => {
       all.push({
         id: 'ms-' + t.id, source: 'outlook', key: null, title: t.title,
         status:   t.status === 'inProgress' ? 'P\u00E5g\u00E5r' : 'Til behandling',
@@ -847,15 +890,18 @@ async function fetchMSTasks(accessToken) {
 }
 
 async function fetchMSCalendar(accessToken) {
+  dbg('Microsoft: henter kalender (neste 7 dager)...');
   const start = new Date().toISOString();
   const end   = new Date(Date.now() + 7*24*60*60*1000).toISOString();
   const res = await fetch(
     'https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=' + start + '&endDateTime=' + end + '&$select=subject,start,end,webLink&$top=30',
     { headers: { Authorization: 'Bearer ' + accessToken } }
   );
-  if (!res.ok) return [];
+  if (!res.ok) { dbg('Microsoft Kalender: HTTP ' + res.status, 'error'); return []; }
   const data = await res.json();
-  return (data.value || []).map(e => ({
+  const events = data.value || [];
+  dbg('Microsoft Kalender: ' + events.length + ' hendelser', events.length ? 'ok' : 'info');
+  return events.map(e => ({
     id: 'cal-' + e.id, source: 'calendar', key: null, title: e.subject,
     status: 'Kommende', priority: 'Medium',
     dueDate: e.start?.dateTime?.split('T')[0] || null,
@@ -867,23 +913,29 @@ async function loadData() {
   if (!jiraCreds && !msToken) return;
   const btn = document.getElementById('refreshBtn');
   btn.textContent = '\u27F3 Oppdaterer...'; btn.disabled = true;
-  // Show loading state in task list
   document.getElementById('taskList').innerHTML = '<div class="empty"><div class="empty-title" style="color:var(--blue);">&#x27F3; Henter oppgaver&#x2026;</div></div>';
+  dbg('=== Starter datahenting ===');
   const errs = []; let fetched = [];
   if (jiraCreds) {
-    try { fetched = [...fetched, ...await fetchJiraIssues(jiraCreds)]; }
-    catch (e) { errs.push('Jira: ' + e.message); console.error('Jira fetch error:', e); }
+    try { const r = await fetchJiraIssues(jiraCreds); fetched = [...fetched, ...r]; }
+    catch (e) { errs.push(e.message); }
   }
   if (msToken) {
-    try { fetched = [...fetched, ...await fetchMSTasks(msToken)]; }
-    catch (e) { errs.push('MS To-Do: ' + e.message); console.error('MS Tasks fetch error:', e); }
-    try { fetched = [...fetched, ...await fetchMSCalendar(msToken)]; }
-    catch (e) { errs.push('MS Kalender: ' + e.message); console.error('MS Calendar fetch error:', e); }
+    try { const r = await fetchMSTasks(msToken); fetched = [...fetched, ...r]; }
+    catch (e) { errs.push(e.message); dbg(e.message, 'error'); }
+    try { const r = await fetchMSCalendar(msToken); fetched = [...fetched, ...r]; }
+    catch (e) { errs.push(e.message); dbg(e.message, 'error'); }
   }
+  dbg('=== Ferdig: ' + fetched.length + ' oppgaver totalt ===', fetched.length ? 'ok' : 'error');
   remoteTasks = fetched;
   showErrors(errs);
   btn.textContent = '\u27F3 Oppdater'; btn.disabled = false;
   renderTasks();
+  // Auto-show debug panel if nothing loaded and there were errors
+  if (fetched.length === 0 && errs.length > 0) {
+    document.getElementById('debugPanel').classList.remove('hidden');
+    renderDebug();
+  }
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
