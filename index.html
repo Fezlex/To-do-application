@@ -1,253 +1,435 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="no">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Tasks</title>
+  <title>Mine oppgaver</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --blue:       #1a4f8a;
+      --blue-light: #2563a8;
+      --blue-pale:  #e8f0f9;
+      --green:      #1a7a3c;
+      --green-pale: #e8f5ee;
+      --red:        #c0392b;
+      --red-pale:   #fdecea;
+      --orange:     #c25a00;
+      --sidebar-w:  220px;
+      --border:     #d5dce6;
+      --bg:         #f4f5f7;
+      --white:      #ffffff;
+      --text:       #1a2332;
+      --text-muted: #5a6a7e;
+      --text-light: #8a9ab0;
+      --header-h:   56px;
+    }
+
     body {
-      font-family: 'DM Sans', 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #0d0d1a 0%, #111128 50%, #0d1a1a 100%);
-      color: #f0f0f0;
+      font-family: 'Source Sans 3', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
-      padding: 40px 24px;
+      font-size: 14px;
     }
 
-    /* Ambient blobs */
-    body::before, body::after {
-      content: '';
-      position: fixed;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 0;
+    /* ── Top bar ── */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
+      background: var(--blue); display: flex; align-items: center;
+      padding: 0 20px; z-index: 100; gap: 16px;
     }
-    body::before {
-      top: 80px; right: 120px;
-      width: 400px; height: 400px;
-      background: radial-gradient(ellipse, rgba(92,77,138,0.15) 0%, transparent 70%);
+    .topbar-logo {
+      display: flex; align-items: center; gap: 10px;
+      color: #fff; font-weight: 700; font-size: 18px; letter-spacing: -0.3px;
     }
-    body::after {
-      bottom: 100px; left: 80px;
-      width: 300px; height: 300px;
-      background: radial-gradient(ellipse, rgba(0,120,212,0.1) 0%, transparent 70%);
+    .topbar-logo-bar { width: 28px; height: 4px; background: #fff; border-radius: 2px; box-shadow: 0 8px 0 #fff, 0 16px 0 #fff; }
+    .topbar-spacer { flex: 1; }
+    .topbar-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--blue-light); color: #fff; font-weight: 700; font-size: 13px;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
 
-    #app { max-width: 860px; margin: 0 auto; position: relative; z-index: 1; }
-
-    /* Header */
-    .header { margin-bottom: 36px; }
-    .header-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; }
-    h1 {
-      font-size: 32px; font-weight: 800; letter-spacing: -1px;
-      background: linear-gradient(135deg, #e0e0ff, #a0b8ff);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    /* ── Sidebar ── */
+    .sidebar {
+      position: fixed; top: var(--header-h); left: 0; bottom: 0;
+      width: var(--sidebar-w); background: var(--white);
+      border-right: 1px solid var(--border); overflow-y: auto;
+      padding: 12px 0; z-index: 90;
     }
-    .subtitle { color: #666; font-size: 14px; margin-top: 6px; }
-    .header-actions { display: flex; gap: 10px; align-items: center; }
+    .sidebar-section { padding: 6px 0; }
+    .sidebar-label {
+      font-size: 11px; font-weight: 700; color: var(--text-light);
+      padding: 8px 18px 4px; letter-spacing: 0.8px; text-transform: uppercase;
+    }
+    .sidebar-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 18px; cursor: pointer; color: var(--text-muted);
+      font-size: 13.5px; font-weight: 500; border-left: 3px solid transparent;
+      transition: all 0.15s; text-decoration: none;
+    }
+    .sidebar-item:hover { background: var(--blue-pale); color: var(--blue); }
+    .sidebar-item.active { background: var(--blue-pale); color: var(--blue); border-left-color: var(--blue); font-weight: 600; }
+    .sidebar-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
 
-    /* Stats */
-    .stats { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+    /* ── Main content ── */
+    .main {
+      margin-left: var(--sidebar-w);
+      margin-top: var(--header-h);
+      padding: 32px 36px;
+      min-height: calc(100vh - var(--header-h));
+    }
+
+    /* ── Breadcrumb ── */
+    .breadcrumb { font-size: 12.5px; color: var(--text-muted); margin-bottom: 20px; display: flex; align-items: center; gap: 6px; }
+    .breadcrumb a { color: var(--blue); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb-sep { color: var(--text-light); }
+
+    /* ── Page header ── */
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .page-header p  { font-size: 14px; color: var(--text-muted); }
+    .page-header-row { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+
+    /* ── Stats row ── */
+    .stats { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
     .stat-card {
-      background: rgba(255,255,255,0.04); border-radius: 10px; padding: 10px 18px;
-      border: 1px solid rgba(255,255,255,0.07);
+      background: var(--white); border: 1px solid var(--border); border-radius: 6px;
+      padding: 12px 20px; min-width: 110px;
     }
-    .stat-value { font-size: 22px; font-weight: 800; }
-    .stat-label { font-size: 11px; color: #666; margin-top: 2px; }
+    .stat-value { font-size: 24px; font-weight: 700; }
+    .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .stat-card.warn .stat-value { color: var(--orange); }
+    .stat-card.danger .stat-value { color: var(--red); }
+    .stat-card.primary .stat-value { color: var(--blue); }
 
-    /* Buttons */
+    /* ── Buttons ── */
     .btn {
-      border: none; border-radius: 8px; padding: 8px 18px;
-      font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.15s;
+      border: none; border-radius: 4px; padding: 8px 16px;
+      font-size: 13.5px; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px;
     }
-    .btn:hover { opacity: 0.85; }
-    .btn-ghost {
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-      color: #aaa;
-    }
-    .btn-primary { background: linear-gradient(135deg, #5c4d8a, #7c6daa); color: #fff; }
-    .btn-jira { background: #0052cc; color: #fff; width: 100%; margin-top: 4px; }
-    .btn-ms { background: #0078d4; color: #fff; width: 100%; margin-top: 4px; }
-    .btn-sm {
-      background: none; border: 1px solid rgba(255,255,255,0.15); color: #aaa;
-      border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 12px; font-family: inherit;
-    }
+    .btn:hover { filter: brightness(0.93); }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-secondary { background: var(--white); color: var(--blue); border: 1px solid var(--blue); }
+    .btn-danger  { background: var(--white); color: var(--red); border: 1px solid var(--red); }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-sm { padding: 5px 12px; font-size: 12.5px; border-radius: 4px; cursor: pointer; font-family: inherit; font-weight: 500; border: 1px solid var(--border); background: var(--white); color: var(--text-muted); transition: all 0.15s; }
+    .btn-sm:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-pale); }
+    .btn-sm.edit  { color: var(--blue);  border-color: var(--blue);  background: var(--blue-pale); }
+    .btn-sm.disc  { color: var(--red);   border-color: var(--red);   background: var(--red-pale); }
+    .btn-sm.csv   { color: var(--green); border-color: var(--green); background: var(--green-pale); }
 
-    /* Connection panels */
-    .connections { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 32px; }
+    /* ── Connection panels ── */
+    .connections { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 28px; }
     .conn-panel {
-      flex: 1; min-width: 260px; border-radius: 12px; padding: 20px;
+      flex: 1; min-width: 240px; background: var(--white);
+      border: 1px solid var(--border); border-radius: 6px; padding: 18px 20px;
     }
-    .conn-panel.jira {
-      background: rgba(0,82,204,0.12);
-      border: 1px solid rgba(0,82,204,0.3);
+    .conn-panel.connected { border-left: 4px solid var(--blue); }
+    .conn-panel.csv-panel { flex-basis: 100%; border-left: 4px solid var(--green); }
+    .conn-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .conn-header-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .conn-title { font-weight: 700; font-size: 14px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+    .conn-title .badge {
+      font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px;
+      letter-spacing: 0.5px;
     }
-    .conn-panel.jira.connected { border-color: #0052cc; }
-    .conn-panel.ms {
-      background: rgba(0,120,212,0.1);
-      border: 1px solid rgba(0,120,212,0.3);
-    }
-    .conn-panel.ms.connected { border-color: #0078d4; }
-    .conn-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .conn-title { font-weight: 700; font-size: 15px; }
-    .conn-title.jira { color: #6b9cff; }
-    .conn-title.ms { color: #5ab0ff; }
-    .conn-title.inactive { color: #aaa; }
-    .conn-form { display: flex; flex-direction: column; gap: 12px; }
-    .conn-note { font-size: 10px; color: #666; }
-    .conn-note a { color: #6b9cff; }
-    .conn-desc { font-size: 12px; color: #5c8fff; }
-    .conn-desc.ms { color: #5ab0ff; }
+    .badge-connected { background: var(--green-pale); color: var(--green); }
+    .badge-disconnected { background: #f0f0f0; color: var(--text-muted); }
+    .conn-desc { font-size: 12.5px; color: var(--text-muted); }
+    .conn-form { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .conn-note { font-size: 11px; color: var(--text-light); }
 
-    /* Form inputs */
-    label { font-size: 11px; color: #888; display: block; margin-bottom: 4px; letter-spacing: 0.5px; }
-    label a { color: #6b9cff; font-size: 10px; margin-left: 4px; }
+    /* ── Form inputs ── */
+    label { font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; letter-spacing: 0.2px; }
+    label a { color: var(--blue); font-size: 11px; margin-left: 6px; font-weight: 400; }
     input, textarea, select {
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 8px; color: #f0f0f0; padding: 10px 12px; font-size: 13px;
-      width: 100%; outline: none; font-family: inherit;
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text); padding: 8px 11px; font-size: 13.5px;
+      width: 100%; outline: none; font-family: inherit; transition: border-color 0.15s;
     }
-    input::placeholder, textarea::placeholder { color: #555; }
-    select option { background: #1a1a2e; }
+    input:focus, textarea:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,79,138,0.1); }
+    input::placeholder, textarea::placeholder { color: var(--text-light); }
+    select option { background: #fff; }
     textarea { resize: vertical; }
 
-    /* Errors */
-    .errors {
-      margin-bottom: 20px; background: rgba(255,59,48,0.1);
-      border: 1px solid rgba(255,59,48,0.3); border-radius: 10px; padding: 12px 16px;
-    }
-    .error-item { font-size: 13px; color: #ff6b6b; }
+    /* ── Info box ── */
+    .info-box { border-radius: 4px; padding: 12px 14px; font-size: 12.5px; line-height: 1.7; }
+    .info-box.blue  { background: var(--blue-pale);  border: 1px solid #b8cfe8; color: #1a3f6a; }
+    .info-box.green { background: var(--green-pale); border: 1px solid #a8d8b8; color: #1a5030; }
 
-    /* Filter bar */
-    .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
-    .filter-bar input { flex: 1; min-width: 180px; padding: 8px 14px; }
+    /* ── CSV drop zone ── */
+    .csv-drop {
+      border: 2px dashed var(--border); border-radius: 6px; padding: 24px;
+      text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg);
+    }
+    .csv-drop:hover { border-color: var(--green); background: var(--green-pale); }
+
+    /* ── Errors ── */
+    .errors { margin-bottom: 20px; background: var(--red-pale); border: 1px solid #f0b8b0; border-radius: 4px; padding: 12px 16px; border-left: 4px solid var(--red); }
+    .error-item { font-size: 13px; color: var(--red); }
+
+    /* ── Filter / toolbar ── */
+    .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; background: var(--white); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; }
+    .toolbar input { flex: 1; min-width: 180px; padding: 7px 11px; background: var(--bg); }
     .filter-btns { display: flex; gap: 6px; flex-wrap: wrap; }
     .filter-btn {
-      background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #888;
-      border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: 12px; font-family: inherit;
-      transition: all 0.15s;
+      background: var(--white); border: 1px solid var(--border); color: var(--text-muted);
+      border-radius: 4px; padding: 5px 13px; cursor: pointer; font-size: 12.5px;
+      font-family: inherit; font-weight: 500; transition: all 0.15s;
     }
-    .filter-btn.active { background: rgba(255,255,255,0.12); color: #f0f0f0; font-weight: 600; }
-    .filter-bar select {
-      width: auto; padding: 7px 12px; font-size: 12px; cursor: pointer; color: #888;
-    }
+    .filter-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .filter-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; }
+    .toolbar select { width: auto; padding: 6px 11px; font-size: 12.5px; cursor: pointer; background: var(--bg); }
+    .toolbar-sep { width: 1px; background: var(--border); height: 24px; }
 
-    /* Task cards */
-    .task-card {
-      background: rgba(255,255,255,0.04); border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.08);
-      padding: 14px 16px; margin-bottom: 8px; transition: background 0.2s;
+    /* ── Task table ── */
+    .task-table-wrap { background: var(--white); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .task-table { width: 100%; border-collapse: collapse; }
+    .task-table thead th {
+      background: #f0f3f7; text-align: left; font-size: 11.5px; font-weight: 700;
+      color: var(--text-muted); padding: 10px 14px; border-bottom: 1px solid var(--border);
+      letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;
     }
-    .task-card:hover { background: rgba(255,255,255,0.08); }
-    .task-card.overdue { border-color: rgba(255,59,48,0.4); }
-    .task-inner { display: flex; align-items: flex-start; gap: 10px; }
-    .priority-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
-    .task-body { flex: 1; min-width: 0; }
-    .task-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+    .task-table tbody tr { border-bottom: 1px solid #edf0f4; transition: background 0.1s; }
+    .task-table tbody tr:last-child { border-bottom: none; }
+    .task-table tbody tr:hover { background: var(--blue-pale); }
+    .task-table tbody tr.overdue { background: #fff8f7; }
+    .task-table tbody tr.overdue:hover { background: #fdecea; }
+    .task-table td { padding: 11px 14px; font-size: 13.5px; vertical-align: middle; }
+
     .source-badge {
-      font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px;
-      letter-spacing: 1px; font-family: monospace; color: #fff;
+      font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 3px;
+      letter-spacing: 0.5px; white-space: nowrap;
     }
-    .task-key { font-size: 11px; color: #6b9cff; font-family: monospace; }
-    .status-pill {
-      font-size: 10px; color: #aaa; background: rgba(255,255,255,0.06);
-      padding: 1px 7px; border-radius: 99px;
-    }
-    .task-title { font-size: 14px; color: #f0f0f0; font-weight: 500; line-height: 1.4; margin-bottom: 6px; }
-    .task-title a { color: inherit; text-decoration: none; }
-    .task-title a:hover { color: #6b9cff; }
-    .task-footer { display: flex; gap: 12px; font-size: 11px; color: #888; flex-wrap: wrap; }
-    .due-overdue { color: #ff3b30; }
-    .due-today { color: #ff9500; }
+    .badge-jira     { background: #e6eef9; color: #0052cc; }
+    .badge-outlook  { background: #e6f2fc; color: #0066cc; }
+    .badge-calendar { background: #e8f5ee; color: #1a7a3c; }
+    .badge-local    { background: #f0ecf8; color: #5c4d8a; }
 
-    /* Empty state */
-    .empty { text-align: center; color: #555; padding: 60px 0; }
-    .empty-icon { font-size: 40px; margin-bottom: 16px; }
-    .empty-title { font-size: 16px; font-weight: 600; color: #666; }
-    .empty-sub { font-size: 13px; color: #444; margin-top: 8px; }
+    .priority-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; }
+    .task-link { color: var(--text); text-decoration: none; font-weight: 500; }
+    .task-link:hover { color: var(--blue); text-decoration: underline; }
+    .due-overdue { color: var(--red); font-weight: 600; }
+    .due-today   { color: var(--orange); font-weight: 600; }
+    .text-muted  { color: var(--text-muted); }
 
-    /* Modal */
-    .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-      display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;
-    }
-    .modal {
-      background: #1a1a2e; border-radius: 16px; padding: 28px;
-      width: 100%; max-width: 460px; border: 1px solid rgba(255,255,255,0.12);
-    }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .modal-header h3 { font-size: 18px; font-weight: 700; }
-    .modal-close { background: none; border: none; color: #888; font-size: 20px; cursor: pointer; }
+    /* ── Empty state ── */
+    .empty { text-align: center; padding: 60px 20px; background: var(--white); border: 1px solid var(--border); border-radius: 6px; }
+    .empty-icon  { font-size: 36px; margin-bottom: 14px; }
+    .empty-title { font-size: 16px; font-weight: 600; color: var(--text-muted); }
+    .empty-sub   { font-size: 13px; color: var(--text-light); margin-top: 6px; }
+
+    /* ── Modal ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+    .modal { background: var(--white); border-radius: 8px; padding: 28px; width: 100%; max-width: 460px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+    .modal-header h3 { font-size: 17px; font-weight: 700; }
+    .modal-close { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; line-height: 1; padding: 2px 6px; border-radius: 4px; }
+    .modal-close:hover { background: var(--bg); }
     .modal-form { display: flex; flex-direction: column; gap: 14px; }
     .form-row { display: flex; gap: 12px; }
     .form-row > div { flex: 1; }
+
+    /* ── Deploy guide ── */
+    .deploy-section { margin-top: 36px; border-top: 1px solid var(--border); padding-top: 20px; }
+    .deploy-toggle { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 10px 0; color: var(--text-muted); font-size: 13px; }
+    .deploy-toggle:hover { color: var(--blue); }
+    .deploy-guide { background: var(--white); border: 1px solid var(--border); border-radius: 6px; padding: 20px; margin-top: 12px; }
+    .deploy-step { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; align-items: flex-start; }
+    .deploy-step:last-child { border-bottom: none; }
+    .deploy-step-num { width: 24px; height: 24px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .deploy-step-text { font-size: 13.5px; color: var(--text); line-height: 1.5; }
+
     .hidden { display: none; }
+
+    @media (max-width: 700px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 20px 16px; }
+    }
   </style>
 </head>
 <body>
-<div id="app">
-  <!-- Header -->
-  <div class="header">
-    <div class="header-top">
-      <div>
-        <h1>My Tasks</h1>
-        <p class="subtitle">All your work, in one place — read-only from connected sources</p>
-      </div>
-      <div class="header-actions">
-        <button class="btn btn-ghost" id="refreshBtn" onclick="loadData()">⟳ Refresh</button>
-        <button class="btn btn-primary" onclick="openAddModal()">+ Add Task</button>
-      </div>
-    </div>
-    <div class="stats hidden" id="statsBar"></div>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="topbar-logo-bar"></div>
+    Mine oppgaver
+  </div>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-avatar" id="avatarEl">?</div>
+</div>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">Kilder</div>
+    <a class="sidebar-item active" onclick="setFilter('all')">
+      <span class="sidebar-icon">&#x1F4CB;</span> Alle oppgaver
+    </a>
+    <a class="sidebar-item" onclick="setFilter('jira')">
+      <span class="sidebar-icon">&#x1F527;</span> Jira
+    </a>
+    <a class="sidebar-item" onclick="setFilter('outlook')">
+      <span class="sidebar-icon">&#x2705;</span> Microsoft To-Do
+    </a>
+    <a class="sidebar-item" onclick="setFilter('calendar')">
+      <span class="sidebar-icon">&#x1F4C5;</span> Kalender
+    </a>
+    <a class="sidebar-item" onclick="setFilter('local')">
+      <span class="sidebar-icon">&#x1F4DD;</span> Lokale / CSV
+    </a>
+  </div>
+  <div class="sidebar-section" style="margin-top:8px;">
+    <div class="sidebar-label">Innstillinger</div>
+    <a class="sidebar-item" onclick="openAddModal()">
+      <span class="sidebar-icon">&#x2795;</span> Ny oppgave
+    </a>
+    <a class="sidebar-item" onclick="toggleForm('csv')">
+      <span class="sidebar-icon">&#x1F4C4;</span> Importer CSV
+    </a>
+    <a class="sidebar-item" onclick="toggleForm('connections')">
+      <span class="sidebar-icon">&#x1F517;</span> Tilkoblinger
+    </a>
+  </div>
+</nav>
+
+<!-- Main content -->
+<main class="main">
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <a href="#">Hjem</a>
+    <span class="breadcrumb-sep">/</span>
+    <span>Mine oppgaver</span>
   </div>
 
-  <!-- Connections -->
-  <div class="connections">
-    <!-- Jira -->
-    <div class="conn-panel jira" id="jiraPanel">
-      <div class="conn-header">
-        <span class="conn-title inactive" id="jiraTitle">Connect Jira</span>
-        <button class="btn-sm" id="jiraToggleBtn" onclick="toggleSection('jiraForm')">Setup</button>
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <h1>Mine oppgaver</h1>
+        <p>Oversikt over alle oppgaver fra tilkoblede kilder</p>
       </div>
-      <p class="conn-desc hidden" id="jiraDesc">Fetching issues assigned to you.</p>
-      <div class="conn-form hidden" id="jiraForm">
-        <div>
-          <label>JIRA DOMAIN (e.g. yourcompany.atlassian.net)</label>
-          <input id="jiraDomain" placeholder="yourcompany.atlassian.net" />
-        </div>
-        <div>
-          <label>EMAIL</label>
-          <input id="jiraEmail" type="email" placeholder="you@company.com" />
-        </div>
-        <div>
-          <label>API TOKEN <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank">Generate ↗</a></label>
-          <input id="jiraToken" type="password" placeholder="Your Jira API token" />
-        </div>
-        <button class="btn btn-jira" onclick="connectJira()">Connect Jira</button>
-        <p class="conn-note">🔒 Credentials are stored only in <em>your</em> browser's localStorage — never sent to any server other than Jira directly.</p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-secondary" id="refreshBtn" onclick="loadData()">&#x27F3; Oppdater</button>
+        <button class="btn btn-primary" onclick="openAddModal()">+ Ny oppgave</button>
       </div>
     </div>
+  </div>
 
-    <!-- Microsoft -->
-    <div class="conn-panel ms" id="msPanel">
-      <div class="conn-header">
-        <span class="conn-title inactive" id="msTitle">Connect Microsoft 365</span>
-        <button class="btn-sm" id="msToggleBtn" onclick="toggleSection('msForm')">Setup</button>
-      </div>
-      <p class="conn-desc ms hidden" id="msDesc">Fetching To-Do tasks and calendar events.</p>
-      <div class="conn-form hidden" id="msForm">
-        <div>
-          <label>MS GRAPH ACCESS TOKEN</label>
-          <textarea id="msTokenInput" style="min-height:80px;font-family:monospace;font-size:11px;"
-            placeholder="Paste your Microsoft Graph access token here. Get one from https://developer.microsoft.com/graph/graph-explorer"></textarea>
+  <!-- Stats -->
+  <div class="stats hidden" id="statsBar"></div>
+
+  <!-- Connections panel (collapsible) -->
+  <div id="connectionsSection" class="hidden" style="margin-bottom:24px;">
+    <div class="connections">
+
+      <!-- Jira -->
+      <div class="conn-panel" id="jiraPanel">
+        <div class="conn-header">
+          <div class="conn-title">
+            &#x1F527; Jira
+            <span class="badge badge-disconnected" id="jiraBadge">Ikke tilkoblet</span>
+          </div>
+          <div class="conn-header-btns">
+            <button class="btn-sm" id="jiraSetupBtn" onclick="toggleForm('jira')">Konfigurer</button>
+            <button class="btn-sm edit hidden" id="jiraEditBtn" onclick="toggleForm('jira')">&#9998; Rediger</button>
+            <button class="btn-sm disc hidden" id="jiraDiscBtn" onclick="disconnectJira()">Koble fra</button>
+          </div>
         </div>
-        <button class="btn btn-ms" onclick="connectMS()">Connect Microsoft 365</button>
-        <p class="conn-note">🔒 Token is used only in your browser to call Microsoft Graph directly.
-          <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank">Get a token ↗</a>
-        </p>
+        <p class="conn-desc" id="jiraDesc" style="display:none;">Henter saker tildelt deg.</p>
+        <div class="conn-form hidden" id="jiraForm">
+          <div>
+            <label>JIRA-DOMENE (f.eks. dinvirksomhet.atlassian.net)</label>
+            <input id="jiraDomain" placeholder="dinvirksomhet.atlassian.net" />
+          </div>
+          <div>
+            <label>E-POST</label>
+            <input id="jiraEmail" type="email" placeholder="deg@virksomhet.no" />
+          </div>
+          <div>
+            <label>API-TOKEN <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank">Generer &#x2197;</a></label>
+            <input id="jiraToken" type="password" placeholder="Ditt Jira API-token" />
+            <p style="font-size:11px;color:var(--text-light);margin-top:4px;">La feltet st&#xE5; tomt for &#xE5; beholde eksisterende token.</p>
+          </div>
+          <button class="btn btn-primary" onclick="connectJira()" style="align-self:flex-start;">Lagre og koble til</button>
+          <p class="conn-note">&#x1F512; Legitimasjon lagres kun i nettleseren din. Sendes aldri til andre servere enn Jira.</p>
+        </div>
+      </div>
+
+      <!-- Microsoft -->
+      <div class="conn-panel" id="msPanel">
+        <div class="conn-header">
+          <div class="conn-title">
+            &#x1F4E7; Microsoft 365
+            <span class="badge badge-disconnected" id="msBadge">Ikke tilkoblet</span>
+          </div>
+          <div class="conn-header-btns">
+            <button class="btn-sm" id="msSetupBtn" onclick="toggleForm('ms')">Konfigurer</button>
+            <button class="btn-sm edit hidden" id="msEditBtn" onclick="toggleForm('ms')">&#9998; Forny token</button>
+            <button class="btn-sm disc hidden" id="msDiscBtn" onclick="disconnectMS()">Koble fra</button>
+          </div>
+        </div>
+        <p class="conn-desc" id="msDesc" style="display:none;">Henter To-Do-oppgaver og kalenderh&#xE6;ndelser.</p>
+        <div class="conn-form hidden" id="msForm">
+          <div class="info-box blue">
+            <strong>Slik f&#xE5;r du et token:</strong><br/>
+            1. G&#xE5; til <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank" style="color:var(--blue);">Microsoft Graph Explorer &#x2197;</a><br/>
+            2. Klikk <strong>Sign in</strong> med din arbeidskonto<br/>
+            3. Klikk fanen <strong>Access token</strong> og klikk <strong>Copy</strong><br/>
+            4. Lim inn i feltet nedenfor<br/>
+            <span style="color:#6a8faf;font-size:11px;">Token utl&#xF8;per etter ~1 time. Bruk "Forny token" n&#xE5;r det er n&#xF8;dvendig.</span>
+          </div>
+          <div>
+            <label>MS GRAPH ACCESS TOKEN</label>
+            <textarea id="msTokenInput" style="min-height:80px;font-family:monospace;font-size:11px;" placeholder="Lim inn Microsoft Graph access token her..."></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="connectMS()" style="align-self:flex-start;">Lagre og koble til</button>
+          <p class="conn-note">&#x1F512; Token brukes kun i nettleseren din for &#xE5; n&#xE5; Microsoft Graph. Lagres ikke p&#xE5; noen server.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CSV Import (collapsible) -->
+  <div id="csvSection" class="hidden" style="margin-bottom:24px;">
+    <div class="conn-panel csv-panel">
+      <div class="conn-header">
+        <div class="conn-title">&#x1F4C4; Importer oppgaver fra CSV</div>
+        <button class="btn-sm csv" onclick="toggleForm('csv')">Skjul</button>
+      </div>
+      <div>
+        <div class="info-box green" style="margin-bottom:12px;">
+          <strong>Forventet CSV-format</strong> (f&#xF8;rste rad = overskrift):<br/>
+          <code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--green);">title</code> <span style="color:#5a7a5a;">(p&#xE5;krevd)</span>
+          &nbsp;<code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-size:11px;">project</code>
+          &nbsp;<code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-size:11px;">priority</code>
+          &nbsp;<code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-size:11px;">dueDate</code>
+          &nbsp;<code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-size:11px;">status</code>
+          &nbsp;<code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-size:11px;">notes</code><br/>
+          <span style="font-size:11px;color:#6a9a6a;">Eksempel: Fiks p&#xE5;loggingsfeil,Backend,H&#xF8;y,2026-03-15,Til behandling,Tildel Lars</span>
+        </div>
+        <div class="csv-drop" id="csvDropZone"
+          ondragover="event.preventDefault();this.style.borderColor='var(--green)'"
+          ondragleave="this.style.borderColor='var(--border)'"
+          ondrop="handleCsvDrop(event)"
+          onclick="document.getElementById('csvFileInput').click()">
+          <div style="font-size:28px;margin-bottom:8px;">&#x1F4C2;</div>
+          <div style="color:var(--green);font-weight:600;font-size:14px;">Klikk for &#xE5; velge CSV-fil</div>
+          <div style="color:var(--text-light);font-size:12px;margin-top:4px;">eller dra og slipp filen her</div>
+        </div>
+        <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleCsvFile(this.files[0])" />
+        <div id="csvStatus" class="hidden" style="font-size:13px;text-align:center;padding:8px;border-radius:4px;margin-top:8px;"></div>
+        <p class="conn-note" style="margin-top:8px;">&#x1F4CC; CSV-oppgaver lagres som lokale oppgaver i nettleseren din. Sendes ikke noe sted.</p>
       </div>
     </div>
   </div>
@@ -255,87 +437,80 @@
   <!-- Errors -->
   <div class="errors hidden" id="errorsBox"></div>
 
-  <!-- Filter bar -->
-  <div class="filter-bar hidden" id="filterBar">
-    <input type="text" placeholder="🔍 Search tasks..." id="searchInput" oninput="renderTasks()" />
+  <!-- Toolbar -->
+  <div class="toolbar hidden" id="filterBar">
+    <input type="text" placeholder="S&#xF8;k i oppgaver..." id="searchInput" oninput="renderTasks()" />
+    <div class="toolbar-sep"></div>
     <div class="filter-btns">
-      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
-      <button class="filter-btn" data-filter="local" onclick="setFilter('local')">Local</button>
-      <button class="filter-btn" data-filter="jira" onclick="setFilter('jira')">Jira</button>
-      <button class="filter-btn" data-filter="outlook" onclick="setFilter('outlook')">To-Do</button>
-      <button class="filter-btn" data-filter="calendar" onclick="setFilter('calendar')">Calendar</button>
+      <button class="filter-btn active" data-filter="all"      onclick="setFilter('all')">Alle</button>
+      <button class="filter-btn"        data-filter="local"    onclick="setFilter('local')">Lokale</button>
+      <button class="filter-btn"        data-filter="jira"     onclick="setFilter('jira')">Jira</button>
+      <button class="filter-btn"        data-filter="outlook"  onclick="setFilter('outlook')">To-Do</button>
+      <button class="filter-btn"        data-filter="calendar" onclick="setFilter('calendar')">Kalender</button>
     </div>
+    <div class="toolbar-sep"></div>
     <select id="sortSelect" onchange="renderTasks()">
-      <option value="dueDate">Sort: Due Date</option>
-      <option value="priority">Sort: Priority</option>
-      <option value="title">Sort: Title</option>
+      <option value="dueDate">Sorter: Forfallsdato</option>
+      <option value="priority">Sorter: Prioritet</option>
+      <option value="title">Sorter: Tittel</option>
     </select>
   </div>
 
-  <!-- Task list -->
+  <!-- Task table -->
   <div id="taskList"></div>
 
   <!-- Deploy guide -->
-  <div style="margin-top:48px;border-top:1px solid rgba(255,255,255,0.06);padding-top:24px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleSection('deployGuide')">
-      <span style="font-size:13px;color:#555;font-weight:600;letter-spacing:0.5px;">🚀 SHARE WITH YOUR TEAM — Deploy to GitHub Pages (free)</span>
-      <span style="color:#444;font-size:12px;" id="deployChevron">▼ show</span>
+  <div class="deploy-section">
+    <div class="deploy-toggle" onclick="toggleForm('deploy')">
+      <span>&#x1F680; Del med teamet ditt &mdash; Publiser p&#xE5; GitHub Pages (gratis)</span>
+      <span id="deployChevron">&#x25BC; vis</span>
     </div>
-    <div class="hidden" id="deployGuide" style="margin-top:16px;background:rgba(0,0,0,0.25);border-radius:12px;padding:20px;font-size:13px;color:#aaa;line-height:2;">
-      <p style="color:#e0e0ff;font-weight:600;margin-bottom:12px;">No installs needed — just a free GitHub account. Everyone on your team gets a shareable URL.</p>
-
-      <div style="display:grid;gap:10px;">
-        <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 16px;">
-          <span style="color:#6b9cff;font-weight:700;">Step 1</span> — Go to
-          <a href="https://github.com" target="_blank" style="color:#6b9cff;">github.com</a>
-          and sign in (or create a free account).
-        </div>
-        <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 16px;">
-          <span style="color:#6b9cff;font-weight:700;">Step 2</span> — Click the <strong style="color:#f0f0f0;">+</strong> icon (top right) → <strong style="color:#f0f0f0;">New repository</strong>.<br/>
-          Name it anything, e.g. <code style="background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:4px;">my-tasks</code>. Set it to <strong style="color:#f0f0f0;">Public</strong>. Click <strong style="color:#f0f0f0;">Create repository</strong>.
-        </div>
-        <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 16px;">
-          <span style="color:#6b9cff;font-weight:700;">Step 3</span> — On the new repo page, click <strong style="color:#f0f0f0;">uploading an existing file</strong>.<br/>
-          Drag and drop <code style="background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:4px;">task-manager.html</code> into the box.<br/>
-          ⚠️ <strong style="color:#ffcc00;">Rename it to <code style="background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:4px;">index.html</code></strong> before uploading (GitHub Pages looks for this name).<br/>
-          Click <strong style="color:#f0f0f0;">Commit changes</strong>.
-        </div>
-        <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 16px;">
-          <span style="color:#6b9cff;font-weight:700;">Step 4</span> — Go to your repo's <strong style="color:#f0f0f0;">Settings</strong> tab → <strong style="color:#f0f0f0;">Pages</strong> (left sidebar).<br/>
-          Under <em>Branch</em>, select <strong style="color:#f0f0f0;">main</strong> and click <strong style="color:#f0f0f0;">Save</strong>.
-        </div>
-        <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 16px;">
-          <span style="color:#34c759;font-weight:700;">Done! ✓</span> — After ~30 seconds your app is live at:<br/>
-          <code style="background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:4px;color:#a0b8ff;">https://YOUR-USERNAME.github.io/my-tasks/</code><br/>
-          Share that URL with your team — no installs, no logins, works in any browser.
-        </div>
-        <div style="background:rgba(255,200,0,0.06);border:1px solid rgba(255,200,0,0.15);border-radius:8px;padding:12px 16px;font-size:12px;color:#997700;">
-          💡 <strong>Each person connects their own Jira & Microsoft accounts</strong> — credentials are stored in their own browser only, never shared or visible to others.
-        </div>
+    <div class="deploy-guide hidden" id="deployForm">
+      <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:16px;">Ingen installasjon n&#xF8;dvendig &mdash; bare en gratis GitHub-konto. Alle f&#xE5;r en delbar URL.</p>
+      <div class="deploy-step">
+        <div class="deploy-step-num">1</div>
+        <div class="deploy-step-text">G&#xE5; til <a href="https://github.com" target="_blank" style="color:var(--blue);">github.com</a> og logg inn (eller opprett gratis konto).</div>
+      </div>
+      <div class="deploy-step">
+        <div class="deploy-step-num">2</div>
+        <div class="deploy-step-text">Klikk <strong>+</strong> &#x2192; <strong>New repository</strong>. Gi det et navn, sett til <strong>Public</strong>, klikk Create.</div>
+      </div>
+      <div class="deploy-step">
+        <div class="deploy-step-num">3</div>
+        <div class="deploy-step-text">Klikk <strong>uploading an existing file</strong>. Last opp denne filen <strong style="color:var(--orange);">omd&#xF8;pt til index.html</strong>. Commit.</div>
+      </div>
+      <div class="deploy-step">
+        <div class="deploy-step-num">4</div>
+        <div class="deploy-step-text">G&#xE5; til <strong>Settings &#x2192; Pages</strong>, velg branch <strong>main</strong>, klikk Save.</div>
+      </div>
+      <div class="deploy-step">
+        <div class="deploy-step-num" style="background:var(--green);">&#x2713;</div>
+        <div class="deploy-step-text">Ferdig! Appen er tilgjengelig p&#xE5; <code style="background:var(--bg);padding:1px 6px;border-radius:3px;">https://BRUKERNAVN.github.io/REPO-NAVN/</code></div>
       </div>
     </div>
   </div>
-</div>
+
+</main>
 
 <!-- Add Task Modal -->
 <div class="modal-overlay hidden" id="addModal">
   <div class="modal">
     <div class="modal-header">
-      <h3>Add Local Task</h3>
-      <button class="modal-close" onclick="closeAddModal()">✕</button>
+      <h3>Ny lokal oppgave</h3>
+      <button class="modal-close" onclick="closeAddModal()">&#x2715;</button>
     </div>
     <div class="modal-form">
       <div>
-        <label>TASK TITLE *</label>
-        <input id="newTitle" placeholder="What needs to be done?" />
+        <label>TITTEL *</label>
+        <input id="newTitle" placeholder="Hva m&#xE5; gj&#xF8;res?" />
       </div>
       <div class="form-row">
         <div>
-          <label>PROJECT / LIST</label>
-          <input id="newProject" placeholder="e.g. Personal" />
+          <label>PROSJEKT / LISTE</label>
+          <input id="newProject" placeholder="f.eks. Personlig" />
         </div>
         <div>
-          <label>PRIORITY</label>
+          <label>PRIORITET</label>
           <select id="newPriority">
             <option>Highest</option><option>High</option>
             <option selected>Medium</option><option>Low</option><option>Lowest</option>
@@ -343,14 +518,17 @@
         </div>
       </div>
       <div>
-        <label>DUE DATE</label>
+        <label>FORFALLSDATO</label>
         <input id="newDueDate" type="date" />
       </div>
       <div>
-        <label>NOTES</label>
-        <textarea id="newNotes" placeholder="Optional notes..." style="min-height:70px;"></textarea>
+        <label>NOTATER</label>
+        <textarea id="newNotes" placeholder="Valgfrie notater..." style="min-height:70px;"></textarea>
       </div>
-      <button class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;" onclick="addLocalTask()">+ Add Task</button>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="closeAddModal()">Avbryt</button>
+        <button class="btn btn-primary" onclick="addLocalTask()">+ Legg til oppgave</button>
+      </div>
     </div>
   </div>
 </div>
@@ -358,165 +536,302 @@
 <script>
 // ─── State ────────────────────────────────────────────────────────────────────
 let remoteTasks = [];
-let localTasks = [];
+let localTasks  = [];
 let currentFilter = 'all';
 let jiraCreds = null;
-let msToken = null;
+let msToken   = null;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 (function init() {
   try { jiraCreds = JSON.parse(localStorage.getItem('tm_jira') || 'null'); } catch {}
   try { msToken = localStorage.getItem('tm_ms_token') || null; } catch {}
   try { localTasks = JSON.parse(localStorage.getItem('tm_local_tasks') || '[]'); } catch {}
-
-  if (jiraCreds) {
-    setJiraConnectedUI();
-  }
-  if (msToken) {
-    setMSConnectedUI();
-  }
-  if (jiraCreds || msToken) {
-    loadData();
-  }
+  if (jiraCreds) setJiraConnectedUI();
+  if (msToken)   setMSConnectedUI();
+  if (jiraCreds || msToken) loadData();
   renderTasks();
 })();
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
-const todayStr = () => new Date().toISOString().split('T')[0];
-const isOverdue = d => d && new Date(d) < new Date(todayStr());
+const todayStr   = () => new Date().toISOString().split('T')[0];
+const isOverdue  = d => d && new Date(d) < new Date(todayStr());
 const isDueToday = d => d && d.split('T')[0] === todayStr();
-const formatDate = d => {
-  if (!d) return null;
-  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-};
+const formatDate = d => d ? new Date(d).toLocaleDateString('no-NO', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-// ─── UI helpers ───────────────────────────────────────────────────────────────
-function toggleSection(id) {
-  const el = document.getElementById(id);
-  el.classList.toggle('hidden');
-  if (id === 'deployGuide') {
-    const chev = document.getElementById('deployChevron');
-    if (chev) chev.textContent = el.classList.contains('hidden') ? '▼ show' : '▲ hide';
+// ─── Panel toggles ────────────────────────────────────────────────────────────
+function toggleForm(which) {
+  if (which === 'connections') {
+    const s = document.getElementById('connectionsSection');
+    s.classList.toggle('hidden');
     return;
   }
-  const isJira = id === 'jiraForm';
-  const btn = document.getElementById(isJira ? 'jiraToggleBtn' : 'msToggleBtn');
-  btn.textContent = el.classList.contains('hidden') ? 'Setup' : 'Hide';
+  if (which === 'csv') {
+    const s = document.getElementById('csvSection');
+    s.classList.toggle('hidden');
+    return;
+  }
+  if (which === 'deploy') {
+    const f = document.getElementById('deployForm');
+    f.classList.toggle('hidden');
+    document.getElementById('deployChevron').textContent = f.classList.contains('hidden') ? '\u25BC vis' : '\u25B2 skjul';
+    return;
+  }
+  const formEl = document.getElementById(which + 'Form');
+  formEl.classList.toggle('hidden');
+  const isOpen = !formEl.classList.contains('hidden');
+  if (which === 'jira') {
+    if (jiraCreds) {
+      document.getElementById('jiraEditBtn').textContent = isOpen ? '\u2716 Lukk' : '\u270E Rediger';
+      if (isOpen) {
+        document.getElementById('jiraDomain').value = jiraCreds.domain || '';
+        document.getElementById('jiraEmail').value  = jiraCreds.email  || '';
+        document.getElementById('jiraToken').value  = '';
+      }
+    } else {
+      document.getElementById('jiraSetupBtn').textContent = isOpen ? 'Skjul' : 'Konfigurer';
+    }
+  }
+  if (which === 'ms') {
+    if (msToken) {
+      document.getElementById('msEditBtn').textContent = isOpen ? '\u2716 Lukk' : '\u270E Forny token';
+    } else {
+      document.getElementById('msSetupBtn').textContent = isOpen ? 'Skjul' : 'Konfigurer';
+    }
+    if (isOpen) document.getElementById('msTokenInput').value = '';
+  }
 }
 
+// ─── Sidebar filter sync ──────────────────────────────────────────────────────
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+  const map = { all: 0, jira: 1, outlook: 2, calendar: 3, local: 4 };
+  const items = document.querySelectorAll('.sidebar-item');
+  if (items[map[f]] !== undefined) items[map[f]].classList.add('active');
+  renderTasks();
+}
+
+// ─── Connected UI ─────────────────────────────────────────────────────────────
 function setJiraConnectedUI() {
   document.getElementById('jiraPanel').classList.add('connected');
-  const title = document.getElementById('jiraTitle');
-  title.textContent = '✓ Jira Connected';
-  title.className = 'conn-title jira';
-  document.getElementById('jiraToggleBtn').classList.add('hidden');
+  document.getElementById('jiraBadge').textContent = 'Tilkoblet';
+  document.getElementById('jiraBadge').className = 'badge badge-connected';
+  document.getElementById('jiraSetupBtn').classList.add('hidden');
+  document.getElementById('jiraEditBtn').classList.remove('hidden');
+  document.getElementById('jiraDiscBtn').classList.remove('hidden');
   document.getElementById('jiraForm').classList.add('hidden');
-  document.getElementById('jiraDesc').classList.remove('hidden');
+  document.getElementById('jiraDesc').style.display = 'block';
+  document.getElementById('jiraEditBtn').textContent = '\u270E Rediger';
 }
 
 function setMSConnectedUI() {
   document.getElementById('msPanel').classList.add('connected');
-  const title = document.getElementById('msTitle');
-  title.textContent = '✓ Microsoft Connected';
-  title.className = 'conn-title ms';
-  document.getElementById('msToggleBtn').classList.add('hidden');
+  document.getElementById('msBadge').textContent = 'Tilkoblet';
+  document.getElementById('msBadge').className = 'badge badge-connected';
+  document.getElementById('msSetupBtn').classList.add('hidden');
+  document.getElementById('msEditBtn').classList.remove('hidden');
+  document.getElementById('msDiscBtn').classList.remove('hidden');
   document.getElementById('msForm').classList.add('hidden');
-  document.getElementById('msDesc').classList.remove('hidden');
+  document.getElementById('msDesc').style.display = 'block';
+  document.getElementById('msEditBtn').textContent = '\u270E Forny token';
+  // Set avatar initials if we can get them
+  try {
+    const payload = JSON.parse(atob(msToken.split('.')[1]));
+    const name = payload.name || payload.preferred_username || '';
+    if (name) {
+      const parts = name.trim().split(' ');
+      document.getElementById('avatarEl').textContent = (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+    }
+  } catch {}
+}
+
+// ─── Disconnect ───────────────────────────────────────────────────────────────
+function disconnectJira() {
+  if (!confirm('Koble fra Jira? Lokale og CSV-oppgaver beholdes.')) return;
+  jiraCreds = null; localStorage.removeItem('tm_jira');
+  remoteTasks = remoteTasks.filter(t => t.source !== 'jira');
+  document.getElementById('jiraPanel').classList.remove('connected');
+  document.getElementById('jiraBadge').textContent = 'Ikke tilkoblet';
+  document.getElementById('jiraBadge').className = 'badge badge-disconnected';
+  document.getElementById('jiraSetupBtn').classList.remove('hidden');
+  document.getElementById('jiraEditBtn').classList.add('hidden');
+  document.getElementById('jiraDiscBtn').classList.add('hidden');
+  document.getElementById('jiraForm').classList.add('hidden');
+  document.getElementById('jiraDesc').style.display = 'none';
+  renderTasks();
+}
+
+function disconnectMS() {
+  if (!confirm('Koble fra Microsoft 365? Lokale og CSV-oppgaver beholdes.')) return;
+  msToken = null; localStorage.removeItem('tm_ms_token');
+  remoteTasks = remoteTasks.filter(t => t.source !== 'outlook' && t.source !== 'calendar');
+  document.getElementById('msPanel').classList.remove('connected');
+  document.getElementById('msBadge').textContent = 'Ikke tilkoblet';
+  document.getElementById('msBadge').className = 'badge badge-disconnected';
+  document.getElementById('msSetupBtn').classList.remove('hidden');
+  document.getElementById('msEditBtn').classList.add('hidden');
+  document.getElementById('msDiscBtn').classList.add('hidden');
+  document.getElementById('msForm').classList.add('hidden');
+  document.getElementById('msDesc').style.display = 'none';
+  document.getElementById('avatarEl').textContent = '?';
+  renderTasks();
 }
 
 function showErrors(errs) {
   const box = document.getElementById('errorsBox');
   if (!errs.length) { box.classList.add('hidden'); return; }
-  box.innerHTML = errs.map(e => `<div class="error-item">⚠ ${esc(e)}</div>`).join('');
+  box.innerHTML = errs.map(e => '<div class="error-item">&#x26A0; ' + esc(e) + '</div>').join('');
   box.classList.remove('hidden');
 }
 
 // ─── Connect ──────────────────────────────────────────────────────────────────
 function connectJira() {
-  const domain = document.getElementById('jiraDomain').value.trim();
-  const email = document.getElementById('jiraEmail').value.trim();
-  const apiToken = document.getElementById('jiraToken').value.trim();
-  if (!domain || !email || !apiToken) { alert('Please fill in all Jira fields.'); return; }
+  const domain   = document.getElementById('jiraDomain').value.trim();
+  const email    = document.getElementById('jiraEmail').value.trim();
+  const newToken = document.getElementById('jiraToken').value.trim();
+  if (!domain || !email) { alert('Fyll inn Jira-domene og e-post.'); return; }
+  const apiToken = newToken || (jiraCreds && jiraCreds.apiToken) || '';
+  if (!apiToken) { alert('Skriv inn ditt Jira API-token.'); return; }
   jiraCreds = { domain, email, apiToken };
   localStorage.setItem('tm_jira', JSON.stringify(jiraCreds));
   setJiraConnectedUI();
+  // Close connections panel after saving
+  document.getElementById('jiraForm').classList.add('hidden');
   loadData();
 }
 
 function connectMS() {
   const token = document.getElementById('msTokenInput').value.trim();
-  if (!token) { alert('Please paste your Microsoft Graph access token.'); return; }
+  if (!token) { alert('Lim inn Microsoft Graph access token.'); return; }
   msToken = token;
   localStorage.setItem('tm_ms_token', msToken);
+  document.getElementById('msTokenInput').value = '';
   setMSConnectedUI();
+  document.getElementById('msForm').classList.add('hidden');
   loadData();
+}
+
+// ─── CSV Import ───────────────────────────────────────────────────────────────
+function handleCsvDrop(e) {
+  e.preventDefault();
+  document.getElementById('csvDropZone').style.borderColor = 'var(--border)';
+  const file = e.dataTransfer.files[0];
+  if (file) handleCsvFile(file);
+}
+
+function handleCsvFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const imported = parseCSV(e.target.result);
+      if (!imported.length) { showCsvStatus('Ingen gyldige oppgaver funnet i CSV.', false); return; }
+      localTasks = [...imported, ...localTasks];
+      localStorage.setItem('tm_local_tasks', JSON.stringify(localTasks));
+      showCsvStatus('Importerte ' + imported.length + ' oppgave' + (imported.length > 1 ? 'r' : '') + ' fra CSV!', true);
+      renderTasks();
+    } catch (err) { showCsvStatus('Kunne ikke lese CSV: ' + err.message, false); }
+  };
+  reader.readAsText(file);
+  document.getElementById('csvFileInput').value = '';
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+  const tasks = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = [];
+    let cur = '', inQ = false;
+    for (const ch of lines[i] + ',') {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    const get = key => (cols[headers.indexOf(key)] || '').replace(/^"|"$/g,'').trim();
+    const title = get('title');
+    if (!title) continue;
+    tasks.push({
+      id: 'csv-' + Date.now() + '-' + i, source: 'local', key: null, title,
+      project:  get('project')  || 'CSV-import',
+      priority: get('priority') || 'Medium',
+      dueDate:  get('duedate') || get('due_date') || get('due date') || null,
+      status:   get('status')  || 'Til behandling',
+      issueType: 'Task', url: null,
+      notes: get('notes') || '',
+    });
+  }
+  return tasks;
+}
+
+function showCsvStatus(msg, ok) {
+  const el = document.getElementById('csvStatus');
+  el.textContent = (ok ? '\u2713 ' : '\u26A0 ') + msg;
+  el.style.color      = ok ? 'var(--green)' : 'var(--red)';
+  el.style.background = ok ? 'var(--green-pale)' : 'var(--red-pale)';
+  el.classList.remove('hidden');
+  setTimeout(() => el.classList.add('hidden'), 5000);
 }
 
 // ─── Fetchers ─────────────────────────────────────────────────────────────────
 async function fetchJiraIssues({ domain, email, apiToken }) {
   const jql = encodeURIComponent('assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC');
-  const jiraUrl = `https://${domain}/rest/api/3/search?jql=${jql}&maxResults=50&fields=summary,status,priority,duedate,project,issuetype`;
-  const auth = `Basic ${btoa(`${email}:${apiToken}`)}`;
-
-  // Try multiple free CORS proxies in order — if one is blocked, the next is tried automatically
+  const jiraUrl = 'https://' + domain + '/rest/api/3/search?jql=' + jql + '&maxResults=50&fields=summary,status,priority,duedate,project,issuetype';
+  const auth = 'Basic ' + btoa(email + ':' + apiToken);
   const proxies = [
-    `https://corsproxy.io/?url=${encodeURIComponent(jiraUrl)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(jiraUrl)}`,
-    `https://thingproxy.freeboard.io/fetch/${jiraUrl}`,
+    'https://corsproxy.io/?url=' + encodeURIComponent(jiraUrl),
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(jiraUrl),
+    'https://thingproxy.freeboard.io/fetch/' + jiraUrl,
   ];
-
   let lastError = '';
   for (const proxied of proxies) {
     try {
-      const res = await fetch(proxied, {
-        headers: { 'Authorization': auth, 'Accept': 'application/json' }
-      });
-      if (res.status === 401) throw new Error('Jira authentication failed — check your email and API token.');
-      if (res.status === 403) throw new Error('Jira access denied — your token may lack permissions.');
-      if (res.status === 404) throw new Error('Jira domain not found — check your domain name.');
-      if (!res.ok) throw new Error(`Jira error: ${res.status} ${res.statusText}`);
+      const res = await fetch(proxied, { headers: { 'Authorization': auth, 'Accept': 'application/json' } });
+      if (res.status === 401) throw new Error('Jira-autentisering mislyktes \u2014 sjekk e-post og API-token.');
+      if (res.status === 403) throw new Error('Jira-tilgang nektet \u2014 tokenet mangler kanskje tillatelser.');
+      if (res.status === 404) throw new Error('Jira-domene ikke funnet \u2014 sjekk domenenavnet.');
+      if (!res.ok) throw new Error('Jira-feil: ' + res.status + ' ' + res.statusText);
       const data = await res.json();
       return (data.issues || []).map(issue => ({
-        id: `jira-${issue.id}`, source: 'jira', key: issue.key,
-        title: issue.fields.summary,
-        status: issue.fields.status?.name || 'Unknown',
-        priority: issue.fields.priority?.name || 'Medium',
-        dueDate: issue.fields.duedate || null,
-        project: issue.fields.project?.name || '',
+        id: 'jira-' + issue.id, source: 'jira', key: issue.key,
+        title:     issue.fields.summary,
+        status:    issue.fields.status?.name    || 'Ukjent',
+        priority:  issue.fields.priority?.name  || 'Medium',
+        dueDate:   issue.fields.duedate          || null,
+        project:   issue.fields.project?.name   || '',
         issueType: issue.fields.issuetype?.name || 'Task',
-        url: `https://${domain}/browse/${issue.key}`
+        url: 'https://' + domain + '/browse/' + issue.key
       }));
     } catch (e) {
-      if (e.message.startsWith('Jira')) throw e; // Auth errors — no point retrying
+      if (e.message.startsWith('Jira')) throw e;
       lastError = e.message;
     }
   }
-  throw new Error(`Could not reach Jira. Your network may be blocking external proxy requests. (${lastError})`);
+  throw new Error('Kunne ikke n\u00E5 Jira. Nettverket ditt kan blokkere forespurte proxyer. (' + lastError + ')');
 }
 
 async function fetchMSTasks(accessToken) {
-  const res = await fetch('https://graph.microsoft.com/v1.0/me/todo/lists', {
-    headers: { Authorization: `Bearer ${accessToken}` }
-  });
-  if (!res.ok) throw new Error(`MS Graph error: ${res.status}`);
+  const res = await fetch('https://graph.microsoft.com/v1.0/me/todo/lists', { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!res.ok) throw new Error('MS Graph-feil: ' + res.status);
   const listsData = await res.json();
-  const lists = listsData.value || [];
   const all = [];
-  for (const list of lists) {
+  for (const list of (listsData.value || [])) {
     const tRes = await fetch(
-      `https://graph.microsoft.com/v1.0/me/todo/lists/${list.id}/tasks?$filter=status ne 'completed'&$top=50`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+      'https://graph.microsoft.com/v1.0/me/todo/lists/' + list.id + '/tasks?$filter=status ne \'completed\'&$top=50',
+      { headers: { Authorization: 'Bearer ' + accessToken } }
     );
     if (!tRes.ok) continue;
     const tData = await tRes.json();
     (tData.value || []).forEach(t => {
       all.push({
-        id: `ms-${t.id}`, source: 'outlook', key: null, title: t.title,
-        status: t.status === 'inProgress' ? 'In Progress' : 'To Do',
+        id: 'ms-' + t.id, source: 'outlook', key: null, title: t.title,
+        status:   t.status === 'inProgress' ? 'P\u00E5g\u00E5r' : 'Til behandling',
         priority: t.importance === 'high' ? 'High' : t.importance === 'low' ? 'Low' : 'Medium',
-        dueDate: t.dueDateTime?.dateTime?.split('T')[0] || null,
-        project: list.displayName, issueType: 'Task', url: null
+        dueDate:  t.dueDateTime?.dateTime?.split('T')[0] || null,
+        project:  list.displayName, issueType: 'Oppgave', url: null
       });
     });
   }
@@ -525,92 +840,54 @@ async function fetchMSTasks(accessToken) {
 
 async function fetchMSCalendar(accessToken) {
   const start = new Date().toISOString();
-  const end = new Date(Date.now() + 7*24*60*60*1000).toISOString();
+  const end   = new Date(Date.now() + 7*24*60*60*1000).toISOString();
   const res = await fetch(
-    `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${start}&endDateTime=${end}&$select=subject,start,end,webLink&$top=30`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
+    'https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=' + start + '&endDateTime=' + end + '&$select=subject,start,end,webLink&$top=30',
+    { headers: { Authorization: 'Bearer ' + accessToken } }
   );
   if (!res.ok) return [];
   const data = await res.json();
   return (data.value || []).map(e => ({
-    id: `cal-${e.id}`, source: 'calendar', key: null, title: e.subject,
-    status: 'Upcoming', priority: 'Medium',
+    id: 'cal-' + e.id, source: 'calendar', key: null, title: e.subject,
+    status: 'Kommende', priority: 'Medium',
     dueDate: e.start?.dateTime?.split('T')[0] || null,
-    project: 'Calendar', issueType: 'Event', url: e.webLink || null
+    project: 'Kalender', issueType: 'H\u00E6ndelse', url: e.webLink || null
   }));
 }
 
 async function loadData() {
   if (!jiraCreds && !msToken) return;
   const btn = document.getElementById('refreshBtn');
-  btn.textContent = '⟳ Syncing...';
-  btn.disabled = true;
-  const errs = [];
-  let fetched = [];
+  btn.textContent = '\u27F3 Oppdaterer...'; btn.disabled = true;
+  const errs = []; let fetched = [];
   if (jiraCreds) {
     try { fetched = [...fetched, ...await fetchJiraIssues(jiraCreds)]; }
-    catch (e) { errs.push(`Jira: ${e.message}`); }
+    catch (e) { errs.push('Jira: ' + e.message); }
   }
   if (msToken) {
     try { fetched = [...fetched, ...await fetchMSTasks(msToken)]; }
-    catch (e) { errs.push(`MS Tasks: ${e.message}`); }
+    catch (e) { errs.push('MS To-Do: ' + e.message); }
     try { fetched = [...fetched, ...await fetchMSCalendar(msToken)]; }
-    catch (e) { errs.push(`MS Calendar: ${e.message}`); }
+    catch (e) { errs.push('MS Kalender: ' + e.message); }
   }
   remoteTasks = fetched;
   showErrors(errs);
-  btn.textContent = '⟳ Refresh';
-  btn.disabled = false;
+  btn.textContent = '\u27F3 Oppdater'; btn.disabled = false;
   renderTasks();
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
-const SOURCE_CFG = {
-  jira:     { label: 'JIRA',     bg: '#0052cc' },
-  outlook:  { label: 'OUTLOOK',  bg: '#0078d4' },
-  calendar: { label: 'CALENDAR', bg: '#107c41' },
-  local:    { label: 'LOCAL',    bg: '#5c4d8a' },
+const SOURCE_BADGE = {
+  jira:     '<span class="source-badge badge-jira">JIRA</span>',
+  outlook:  '<span class="source-badge badge-outlook">TO-DO</span>',
+  calendar: '<span class="source-badge badge-calendar">KALENDER</span>',
+  local:    '<span class="source-badge badge-local">LOKALT</span>',
 };
-const PRIORITY_COLORS = { Highest: '#ff3b30', High: '#ff9500', Medium: '#ffcc00', Low: '#34c759', Lowest: '#8e8e93' };
-const PRIORITY_ORDER = { Highest: 0, High: 1, Medium: 2, Low: 3, Lowest: 4 };
-
-function taskCardHTML(task) {
-  const overdue = isOverdue(task.dueDate);
-  const today_ = isDueToday(task.dueDate);
-  const src = SOURCE_CFG[task.source] || { label: task.source.toUpperCase(), bg: '#555' };
-  const pColor = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.Medium;
-  const titleHTML = task.url
-    ? `<a href="${esc(task.url)}" target="_blank" rel="noreferrer">${esc(task.title)}</a>`
-    : esc(task.title);
-  let dueHTML = '';
-  if (task.dueDate) {
-    const cls = overdue ? 'due-overdue' : today_ ? 'due-today' : '';
-    const prefix = overdue ? '⚠ Overdue · ' : today_ ? '⏰ Today · ' : '📅 ';
-    dueHTML = `<span class="${cls}">${prefix}${formatDate(task.dueDate)}</span>`;
-  }
-  return `
-    <div class="task-card${overdue ? ' overdue' : ''}">
-      <div class="task-inner">
-        <div class="priority-dot" style="background:${pColor}"></div>
-        <div class="task-body">
-          <div class="task-meta">
-            <span class="source-badge" style="background:${src.bg}">${src.label}</span>
-            ${task.key ? `<span class="task-key">${esc(task.key)}</span>` : ''}
-            <span class="status-pill">${esc(task.status)}</span>
-          </div>
-          <div class="task-title">${titleHTML}</div>
-          <div class="task-footer">
-            ${task.project ? `<span>📁 ${esc(task.project)}</span>` : ''}
-            ${dueHTML}
-            ${task.issueType ? `<span>🏷 ${esc(task.issueType)}</span>` : ''}
-          </div>
-        </div>
-      </div>
-    </div>`;
-}
+const PRIORITY_COLORS = { Highest: '#c0392b', High: '#c25a00', Medium: '#b8860b', Low: '#1a7a3c', Lowest: '#8a9ab0' };
+const PRIORITY_ORDER  = { Highest: 0, High: 1, Medium: 2, Low: 3, Lowest: 4 };
 
 function renderTasks() {
-  const all = [...localTasks, ...remoteTasks];
+  const all    = [...localTasks, ...remoteTasks];
   const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
   const sortBy = document.getElementById('sortSelect')?.value || 'dueDate';
 
@@ -621,8 +898,7 @@ function renderTasks() {
   }).sort((a, b) => {
     if (sortBy === 'dueDate') {
       if (!a.dueDate && !b.dueDate) return 0;
-      if (!a.dueDate) return 1;
-      if (!b.dueDate) return -1;
+      if (!a.dueDate) return 1; if (!b.dueDate) return -1;
       return new Date(a.dueDate) - new Date(b.dueDate);
     }
     if (sortBy === 'priority') return (PRIORITY_ORDER[a.priority]||2) - (PRIORITY_ORDER[b.priority]||2);
@@ -634,45 +910,71 @@ function renderTasks() {
   if (all.length > 0) {
     statsBar.classList.remove('hidden');
     const overdue = all.filter(t => isOverdue(t.dueDate)).length;
-    const today_ = all.filter(t => isDueToday(t.dueDate)).length;
-    statsBar.innerHTML = [
-      { label: 'Total', value: all.length, color: '#a0b8ff' },
-      { label: 'Due Today', value: today_, color: '#ff9500' },
-      { label: 'Overdue', value: overdue, color: '#ff3b30' },
-    ].map(s => `<div class="stat-card"><div class="stat-value" style="color:${s.color}">${s.value}</div><div class="stat-label">${s.label}</div></div>`).join('');
-  } else {
-    statsBar.classList.add('hidden');
-  }
+    const today_  = all.filter(t => isDueToday(t.dueDate)).length;
+    statsBar.innerHTML =
+      '<div class="stat-card primary"><div class="stat-value">' + all.length + '</div><div class="stat-label">Totalt</div></div>' +
+      '<div class="stat-card warn"><div class="stat-value">' + today_ + '</div><div class="stat-label">Forfaller i dag</div></div>' +
+      '<div class="stat-card danger"><div class="stat-value">' + overdue + '</div><div class="stat-label">Forfalt</div></div>';
+  } else { statsBar.classList.add('hidden'); }
 
-  // Filter bar
   const filterBar = document.getElementById('filterBar');
   if (all.length > 0) filterBar.classList.remove('hidden');
 
-  // Task list
   const list = document.getElementById('taskList');
-  if (filtered.length > 0) {
-    list.innerHTML = filtered.map(taskCardHTML).join('');
-  } else if (all.length > 0) {
-    list.innerHTML = `<div class="empty"><div>No tasks match your filter.</div></div>`;
-  } else if (!jiraCreds && !msToken) {
-    list.innerHTML = `<div class="empty"><div class="empty-icon">🔌</div><div class="empty-title">Connect Jira or Microsoft 365 above to get started.</div><div class="empty-sub">Or add a local task now.</div></div>`;
-  } else {
-    list.innerHTML = `<div class="empty"><div>Loading your tasks…</div></div>`;
+  if (filtered.length === 0) {
+    if (!jiraCreds && !msToken && localTasks.length === 0) {
+      list.innerHTML = '<div class="empty"><div class="empty-icon">&#x1F50C;</div><div class="empty-title">Ingen tilkoblinger konfigurert</div><div class="empty-sub">Klikk "Tilkoblinger" i sidepanelet for &#xE5; koble til Jira eller Microsoft 365, eller importer en CSV-fil.</div></div>';
+    } else if (all.length > 0) {
+      list.innerHTML = '<div class="empty"><div class="empty-title">Ingen oppgaver samsvarer med filteret ditt.</div></div>';
+    } else {
+      list.innerHTML = '<div class="empty"><div class="empty-title">Laster oppgaver&#x2026;</div></div>';
+    }
+    return;
   }
-}
 
-function setFilter(f) {
-  currentFilter = f;
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.filter === f);
-  });
-  renderTasks();
+  const rows = filtered.map(task => {
+    const overdue = isOverdue(task.dueDate);
+    const today_  = isDueToday(task.dueDate);
+    const pColor  = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.Medium;
+    const badge   = SOURCE_BADGE[task.source] || '<span class="source-badge badge-local">' + esc(task.source.toUpperCase()) + '</span>';
+    const titleCell = task.url
+      ? '<a class="task-link" href="' + esc(task.url) + '" target="_blank" rel="noreferrer">' + esc(task.title) + '</a>'
+      : esc(task.title);
+    let dueCellContent = task.dueDate ? formatDate(task.dueDate) : '<span class="text-muted">&mdash;</span>';
+    let dueClass = '';
+    if (overdue)      { dueCellContent = '&#x26A0; ' + formatDate(task.dueDate); dueClass = 'due-overdue'; }
+    else if (today_)  { dueCellContent = '&#x23F0; ' + formatDate(task.dueDate); dueClass = 'due-today'; }
+
+    return '<tr class="' + (overdue ? 'overdue' : '') + '">' +
+      '<td>' + badge + '</td>' +
+      '<td>' +
+        (task.key ? '<span style="font-size:11px;color:#6a8fae;font-family:monospace;margin-right:8px;">' + esc(task.key) + '</span>' : '') +
+        titleCell +
+      '</td>' +
+      '<td class="text-muted" style="font-size:13px;">' + esc(task.project || '') + '</td>' +
+      '<td><span class="priority-dot" style="background:' + pColor + '"></span><span style="font-size:12.5px;color:var(--text-muted);">' + esc(task.priority) + '</span></td>' +
+      '<td><span style="font-size:12px;background:var(--bg);padding:2px 8px;border-radius:3px;">' + esc(task.status) + '</span></td>' +
+      '<td class="' + dueClass + '" style="font-size:13px;white-space:nowrap;">' + dueCellContent + '</td>' +
+      '</tr>';
+  }).join('');
+
+  list.innerHTML =
+    '<div class="task-table-wrap">' +
+    '<table class="task-table">' +
+    '<thead><tr>' +
+    '<th style="width:90px;">KILDE</th>' +
+    '<th>TITTEL</th>' +
+    '<th style="width:160px;">PROSJEKT</th>' +
+    '<th style="width:110px;">PRIORITET</th>' +
+    '<th style="width:130px;">STATUS</th>' +
+    '<th style="width:130px;">FORFALLSDATO</th>' +
+    '</tr></thead>' +
+    '<tbody>' + rows + '</tbody>' +
+    '</table></div>';
 }
 
 // ─── Add Local Task ───────────────────────────────────────────────────────────
-function openAddModal() {
-  document.getElementById('addModal').classList.remove('hidden');
-}
+function openAddModal()  { document.getElementById('addModal').classList.remove('hidden'); }
 function closeAddModal() {
   document.getElementById('addModal').classList.add('hidden');
   ['newTitle','newProject','newDueDate','newNotes'].forEach(id => document.getElementById(id).value = '');
@@ -680,15 +982,15 @@ function closeAddModal() {
 }
 function addLocalTask() {
   const title = document.getElementById('newTitle').value.trim();
-  if (!title) { alert('Please enter a task title.'); return; }
+  if (!title) { alert('Skriv inn en oppgavetittel.'); return; }
   const task = {
-    id: `local-${Date.now()}`, source: 'local', key: null, title,
-    status: 'To Do',
-    priority: document.getElementById('newPriority').value,
-    dueDate: document.getElementById('newDueDate').value || null,
-    project: document.getElementById('newProject').value.trim() || 'Personal',
-    issueType: 'Task', url: null,
-    notes: document.getElementById('newNotes').value.trim(),
+    id: 'local-' + Date.now(), source: 'local', key: null, title,
+    status:    'Til behandling',
+    priority:  document.getElementById('newPriority').value,
+    dueDate:   document.getElementById('newDueDate').value || null,
+    project:   document.getElementById('newProject').value.trim() || 'Personlig',
+    issueType: 'Oppgave', url: null,
+    notes:     document.getElementById('newNotes').value.trim(),
   };
   localTasks = [task, ...localTasks];
   localStorage.setItem('tm_local_tasks', JSON.stringify(localTasks));
@@ -696,7 +998,6 @@ function addLocalTask() {
   renderTasks();
 }
 
-// Close modal on overlay click
 document.getElementById('addModal').addEventListener('click', function(e) {
   if (e.target === this) closeAddModal();
 });
