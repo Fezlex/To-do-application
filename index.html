@@ -46,7 +46,6 @@
       display: flex; align-items: center; gap: 10px;
       color: #fff; font-weight: 700; font-size: 18px; letter-spacing: -0.3px;
     }
-    .topbar-logo-bar { width: 28px; height: 4px; background: #fff; border-radius: 2px; box-shadow: 0 8px 0 #fff, 0 16px 0 #fff; }
     .topbar-spacer { flex: 1; }
     .topbar-avatar {
       width: 34px; height: 34px; border-radius: 50%;
@@ -260,7 +259,6 @@
 <!-- Top bar -->
 <div class="topbar">
   <div class="topbar-logo">
-    <div class="topbar-logo-bar"></div>
     Mine oppgaver
   </div>
   <div class="topbar-spacer"></div>
@@ -548,7 +546,15 @@ let msToken   = null;
   try { localTasks = JSON.parse(localStorage.getItem('tm_local_tasks') || '[]'); } catch {}
   if (jiraCreds) setJiraConnectedUI();
   if (msToken)   setMSConnectedUI();
-  if (jiraCreds || msToken) loadData();
+  // Auto-open connections panel if nothing is connected yet
+  if (!jiraCreds && !msToken) {
+    document.getElementById('connectionsSection').classList.remove('hidden');
+  }
+  if (jiraCreds || msToken) {
+    // Show loading state immediately while fetch runs
+    document.getElementById('taskList').innerHTML = '<div class="empty"><div class="empty-title">&#x27F3; Laster oppgaver&#x2026;</div></div>';
+    loadData();
+  }
   renderTasks();
 })();
 
@@ -564,6 +570,8 @@ function toggleForm(which) {
   if (which === 'connections') {
     const s = document.getElementById('connectionsSection');
     s.classList.toggle('hidden');
+    // Scroll to it when opening
+    if (!s.classList.contains('hidden')) s.scrollIntoView({ behavior: 'smooth', block: 'start' });
     return;
   }
   if (which === 'csv') {
@@ -859,16 +867,18 @@ async function loadData() {
   if (!jiraCreds && !msToken) return;
   const btn = document.getElementById('refreshBtn');
   btn.textContent = '\u27F3 Oppdaterer...'; btn.disabled = true;
+  // Show loading state in task list
+  document.getElementById('taskList').innerHTML = '<div class="empty"><div class="empty-title" style="color:var(--blue);">&#x27F3; Henter oppgaver&#x2026;</div></div>';
   const errs = []; let fetched = [];
   if (jiraCreds) {
     try { fetched = [...fetched, ...await fetchJiraIssues(jiraCreds)]; }
-    catch (e) { errs.push('Jira: ' + e.message); }
+    catch (e) { errs.push('Jira: ' + e.message); console.error('Jira fetch error:', e); }
   }
   if (msToken) {
     try { fetched = [...fetched, ...await fetchMSTasks(msToken)]; }
-    catch (e) { errs.push('MS To-Do: ' + e.message); }
+    catch (e) { errs.push('MS To-Do: ' + e.message); console.error('MS Tasks fetch error:', e); }
     try { fetched = [...fetched, ...await fetchMSCalendar(msToken)]; }
-    catch (e) { errs.push('MS Kalender: ' + e.message); }
+    catch (e) { errs.push('MS Kalender: ' + e.message); console.error('MS Calendar fetch error:', e); }
   }
   remoteTasks = fetched;
   showErrors(errs);
@@ -926,9 +936,8 @@ function renderTasks() {
       list.innerHTML = '<div class="empty"><div class="empty-icon">&#x1F50C;</div><div class="empty-title">Ingen tilkoblinger konfigurert</div><div class="empty-sub">Klikk "Tilkoblinger" i sidepanelet for &#xE5; koble til Jira eller Microsoft 365, eller importer en CSV-fil.</div></div>';
     } else if (all.length > 0) {
       list.innerHTML = '<div class="empty"><div class="empty-title">Ingen oppgaver samsvarer med filteret ditt.</div></div>';
-    } else {
-      list.innerHTML = '<div class="empty"><div class="empty-title">Laster oppgaver&#x2026;</div></div>';
     }
+    // If credentials exist but no tasks yet — loadData() will re-render when done, so show nothing
     return;
   }
 
