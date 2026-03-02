@@ -651,15 +651,24 @@ function setMSConnectedUI() {
   document.getElementById('msForm').classList.add('hidden');
   document.getElementById('msDesc').style.display = 'block';
   document.getElementById('msEditBtn').textContent = '\u270E Forny token';
-  // Set avatar initials if we can get them
+  // Try to read name from JWT — must not crash if token is malformed
   try {
-    const payload = JSON.parse(atob(msToken.split('.')[1]));
-    const name = payload.name || payload.preferred_username || '';
-    if (name) {
-      const parts = name.trim().split(' ');
-      document.getElementById('avatarEl').textContent = (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+    const parts = msToken.split('.');
+    if (parts.length === 3) {
+      // Fix base64 padding before decoding
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+      const payload = JSON.parse(atob(padded));
+      const name = payload.name || payload.preferred_username || '';
+      if (name) {
+        const words = name.trim().split(' ');
+        document.getElementById('avatarEl').textContent =
+          (words[0][0] + (words[1] ? words[1][0] : '')).toUpperCase();
+      }
     }
-  } catch {}
+  } catch (e) {
+    // Avatar parsing failed — not critical, ignore
+  }
 }
 
 // ─── Disconnect ───────────────────────────────────────────────────────────────
