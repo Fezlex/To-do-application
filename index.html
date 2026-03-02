@@ -457,39 +457,42 @@ function connectMS() {
 async function fetchJiraIssues({ domain, email, apiToken }) {
   const jql = encodeURIComponent('assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC');
   const jiraUrl = `https://${domain}/rest/api/3/search?jql=${jql}&maxResults=50&fields=summary,status,priority,duedate,project,issuetype`;
-  // corsproxy.io is a free, zero-install CORS proxy — it simply forwards the request
-  // to Jira and returns the response with CORS headers. No data is stored.
-  const proxied = `https://corsproxy.io/?url=${encodeURIComponent(jiraUrl)}`;
-  let res;
-  try {
-    res = await fetch(proxied, {
-      headers: {
-        'Authorization': `Basic ${btoa(`${email}:${apiToken}`)}`,
-        'Accept': 'application/json',
-        'x-cors-api-key': 'temp_' + btoa(domain).slice(0, 16),
-      }
-    });
-  } catch (e) {
-    throw new Error('Could not reach Jira. Check your internet connection or domain name.');
+  const auth = `Basic ${btoa(`${email}:${apiToken}`)}`;
+
+  // Try multiple free CORS proxies in order — if one is blocked, the next is tried automatically
+  const proxies = [
+    `https://corsproxy.io/?url=${encodeURIComponent(jiraUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(jiraUrl)}`,
+    `https://thingproxy.freeboard.io/fetch/${jiraUrl}`,
+  ];
+
+  let lastError = '';
+  for (const proxied of proxies) {
+    try {
+      const res = await fetch(proxied, {
+        headers: { 'Authorization': auth, 'Accept': 'application/json' }
+      });
+      if (res.status === 401) throw new Error('Jira authentication failed — check your email and API token.');
+      if (res.status === 403) throw new Error('Jira access denied — your token may lack permissions.');
+      if (res.status === 404) throw new Error('Jira domain not found — check your domain name.');
+      if (!res.ok) throw new Error(`Jira error: ${res.status} ${res.statusText}`);
+      const data = await res.json();
+      return (data.issues || []).map(issue => ({
+        id: `jira-${issue.id}`, source: 'jira', key: issue.key,
+        title: issue.fields.summary,
+        status: issue.fields.status?.name || 'Unknown',
+        priority: issue.fields.priority?.name || 'Medium',
+        dueDate: issue.fields.duedate || null,
+        project: issue.fields.project?.name || '',
+        issueType: issue.fields.issuetype?.name || 'Task',
+        url: `https://${domain}/browse/${issue.key}`
+      }));
+    } catch (e) {
+      if (e.message.startsWith('Jira')) throw e; // Auth errors — no point retrying
+      lastError = e.message;
+    }
   }
-  if (!res.ok) {
-    // Friendly error messages for common failures
-    if (res.status === 401) throw new Error('Jira authentication failed — check your email and API token.');
-    if (res.status === 403) throw new Error('Jira access denied — your token may lack permissions.');
-    if (res.status === 404) throw new Error('Jira domain not found — check your domain name.');
-    throw new Error(`Jira error: ${res.status} ${res.statusText}`);
-  }
-  const data = await res.json();
-  return (data.issues || []).map(issue => ({
-    id: `jira-${issue.id}`, source: 'jira', key: issue.key,
-    title: issue.fields.summary,
-    status: issue.fields.status?.name || 'Unknown',
-    priority: issue.fields.priority?.name || 'Medium',
-    dueDate: issue.fields.duedate || null,
-    project: issue.fields.project?.name || '',
-    issueType: issue.fields.issuetype?.name || 'Task',
-    url: `https://${domain}/browse/${issue.key}`
-  }));
+  throw new Error(`Could not reach Jira. Your network may be blocking external proxy requests. (${lastError})`);
 }
 
 async function fetchMSTasks(accessToken) {
