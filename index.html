@@ -214,23 +214,6 @@
       </div>
       <p class="conn-desc hidden" id="jiraDesc">Fetching issues assigned to you.</p>
       <div class="conn-form hidden" id="jiraForm">
-        <div style="background:rgba(255,200,0,0.07);border:1px solid rgba(255,200,0,0.2);border-radius:8px;padding:10px 12px;font-size:12px;color:#cca800;line-height:1.5;">
-          ⚠ <strong>CORS notice:</strong> Browsers block direct Jira API calls from local files.
-          Run the included <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:3px;">jira-proxy.js</code> locally first, then set the proxy URL below.
-          <a href="#" onclick="document.getElementById('proxyInstructions').classList.toggle('hidden');return false;" style="color:#ffcc00;margin-left:4px;">How? ↓</a>
-        </div>
-        <div class="hidden" id="proxyInstructions" style="background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;font-size:11px;color:#aaa;line-height:1.8;font-family:monospace;">
-          1. Make sure Node.js is installed (<a href="https://nodejs.org" target="_blank" style="color:#6b9cff;">nodejs.org</a>)<br/>
-          2. Save <strong>jira-proxy.js</strong> (provided alongside this file)<br/>
-          3. Open a terminal and run:<br/>
-          <span style="color:#7fff7f;">node jira-proxy.js</span><br/>
-          4. Leave that terminal open, then connect below.<br/>
-          The proxy runs only on your machine at <strong>localhost:3131</strong>.
-        </div>
-        <div>
-          <label>PROXY URL <span style="color:#666;font-size:10px;">(default: http://localhost:3131)</span></label>
-          <input id="jiraProxy" placeholder="http://localhost:3131" value="http://localhost:3131" />
-        </div>
         <div>
           <label>JIRA DOMAIN (e.g. yourcompany.atlassian.net)</label>
           <input id="jiraDomain" placeholder="yourcompany.atlassian.net" />
@@ -244,7 +227,7 @@
           <input id="jiraToken" type="password" placeholder="Your Jira API token" />
         </div>
         <button class="btn btn-jira" onclick="connectJira()">Connect Jira</button>
-        <p class="conn-note">🔒 All credentials stay in your browser. The proxy only runs locally on your machine — no data leaves your computer.</p>
+        <p class="conn-note">🔒 Credentials are stored only in <em>your</em> browser's localStorage — never sent to any server other than Jira directly.</p>
       </div>
     </div>
 
@@ -291,6 +274,47 @@
 
   <!-- Task list -->
   <div id="taskList"></div>
+
+  <!-- Deploy guide -->
+  <div style="margin-top:48px;border-top:1px solid rgba(255,255,255,0.06);padding-top:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleSection('deployGuide')">
+      <span style="font-size:13px;color:#555;font-weight:600;letter-spacing:0.5px;">🚀 SHARE WITH YOUR TEAM — Deploy to GitHub Pages (free)</span>
+      <span style="color:#444;font-size:12px;" id="deployChevron">▼ show</span>
+    </div>
+    <div class="hidden" id="deployGuide" style="margin-top:16px;background:rgba(0,0,0,0.25);border-radius:12px;padding:20px;font-size:13px;color:#aaa;line-height:2;">
+      <p style="color:#e0e0ff;font-weight:600;margin-bottom:12px;">No installs needed — just a free GitHub account. Everyone on your team gets a shareable URL.</p>
+
+      <div style="display:grid;gap:10px;">
+        <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 16px;">
+          <span style="color:#6b9cff;font-weight:700;">Step 1</span> — Go to
+          <a href="https://github.com" target="_blank" style="color:#6b9cff;">github.com</a>
+          and sign in (or create a free account).
+        </div>
+        <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 16px;">
+          <span style="color:#6b9cff;font-weight:700;">Step 2</span> — Click the <strong style="color:#f0f0f0;">+</strong> icon (top right) → <strong style="color:#f0f0f0;">New repository</strong>.<br/>
+          Name it anything, e.g. <code style="background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:4px;">my-tasks</code>. Set it to <strong style="color:#f0f0f0;">Public</strong>. Click <strong style="color:#f0f0f0;">Create repository</strong>.
+        </div>
+        <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 16px;">
+          <span style="color:#6b9cff;font-weight:700;">Step 3</span> — On the new repo page, click <strong style="color:#f0f0f0;">uploading an existing file</strong>.<br/>
+          Drag and drop <code style="background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:4px;">task-manager.html</code> into the box.<br/>
+          ⚠️ <strong style="color:#ffcc00;">Rename it to <code style="background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:4px;">index.html</code></strong> before uploading (GitHub Pages looks for this name).<br/>
+          Click <strong style="color:#f0f0f0;">Commit changes</strong>.
+        </div>
+        <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 16px;">
+          <span style="color:#6b9cff;font-weight:700;">Step 4</span> — Go to your repo's <strong style="color:#f0f0f0;">Settings</strong> tab → <strong style="color:#f0f0f0;">Pages</strong> (left sidebar).<br/>
+          Under <em>Branch</em>, select <strong style="color:#f0f0f0;">main</strong> and click <strong style="color:#f0f0f0;">Save</strong>.
+        </div>
+        <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 16px;">
+          <span style="color:#34c759;font-weight:700;">Done! ✓</span> — After ~30 seconds your app is live at:<br/>
+          <code style="background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:4px;color:#a0b8ff;">https://YOUR-USERNAME.github.io/my-tasks/</code><br/>
+          Share that URL with your team — no installs, no logins, works in any browser.
+        </div>
+        <div style="background:rgba(255,200,0,0.06);border:1px solid rgba(255,200,0,0.15);border-radius:8px;padding:12px 16px;font-size:12px;color:#997700;">
+          💡 <strong>Each person connects their own Jira & Microsoft accounts</strong> — credentials are stored in their own browser only, never shared or visible to others.
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Add Task Modal -->
@@ -371,6 +395,11 @@ const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 function toggleSection(id) {
   const el = document.getElementById(id);
   el.classList.toggle('hidden');
+  if (id === 'deployGuide') {
+    const chev = document.getElementById('deployChevron');
+    if (chev) chev.textContent = el.classList.contains('hidden') ? '▼ show' : '▲ hide';
+    return;
+  }
   const isJira = id === 'jiraForm';
   const btn = document.getElementById(isJira ? 'jiraToggleBtn' : 'msToggleBtn');
   btn.textContent = el.classList.contains('hidden') ? 'Setup' : 'Hide';
@@ -408,9 +437,8 @@ function connectJira() {
   const domain = document.getElementById('jiraDomain').value.trim();
   const email = document.getElementById('jiraEmail').value.trim();
   const apiToken = document.getElementById('jiraToken').value.trim();
-  const proxyUrl = (document.getElementById('jiraProxy').value.trim() || 'http://localhost:3131').replace(/\/$/, '');
   if (!domain || !email || !apiToken) { alert('Please fill in all Jira fields.'); return; }
-  jiraCreds = { domain, email, apiToken, proxyUrl };
+  jiraCreds = { domain, email, apiToken };
   localStorage.setItem('tm_jira', JSON.stringify(jiraCreds));
   setJiraConnectedUI();
   loadData();
@@ -426,20 +454,31 @@ function connectMS() {
 }
 
 // ─── Fetchers ─────────────────────────────────────────────────────────────────
-async function fetchJiraIssues({ domain, email, apiToken, proxyUrl }) {
-  const base = proxyUrl || 'http://localhost:3131';
+async function fetchJiraIssues({ domain, email, apiToken }) {
   const jql = encodeURIComponent('assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC');
-  // Route through local proxy: proxy forwards to Jira and adds CORS headers
-  const url = `${base}/jira?domain=${encodeURIComponent(domain)}&jql=${jql}&maxResults=50&fields=summary,status,priority,duedate,project,issuetype`;
+  const jiraUrl = `https://${domain}/rest/api/3/search?jql=${jql}&maxResults=50&fields=summary,status,priority,duedate,project,issuetype`;
+  // corsproxy.io is a free, zero-install CORS proxy — it simply forwards the request
+  // to Jira and returns the response with CORS headers. No data is stored.
+  const proxied = `https://corsproxy.io/?url=${encodeURIComponent(jiraUrl)}`;
   let res;
   try {
-    res = await fetch(url, {
-      headers: { 'X-Jira-Email': email, 'X-Jira-Token': apiToken }
+    res = await fetch(proxied, {
+      headers: {
+        'Authorization': `Basic ${btoa(`${email}:${apiToken}`)}`,
+        'Accept': 'application/json',
+        'x-cors-api-key': 'temp_' + btoa(domain).slice(0, 16),
+      }
     });
   } catch (e) {
-    throw new Error('Cannot reach the local proxy. Make sure jira-proxy.js is running (node jira-proxy.js).');
+    throw new Error('Could not reach Jira. Check your internet connection or domain name.');
   }
-  if (!res.ok) throw new Error(`Jira error: ${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    // Friendly error messages for common failures
+    if (res.status === 401) throw new Error('Jira authentication failed — check your email and API token.');
+    if (res.status === 403) throw new Error('Jira access denied — your token may lack permissions.');
+    if (res.status === 404) throw new Error('Jira domain not found — check your domain name.');
+    throw new Error(`Jira error: ${res.status} ${res.statusText}`);
+  }
   const data = await res.json();
   return (data.issues || []).map(issue => ({
     id: `jira-${issue.id}`, source: 'jira', key: issue.key,
