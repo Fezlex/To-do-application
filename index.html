@@ -162,6 +162,7 @@
     .info-box { border-radius: 4px; padding: 12px 14px; font-size: 12.5px; line-height: 1.7; }
     .info-box.blue  { background: var(--blue-pale);  border: 1px solid #b8cfe8; color: #1a3f6a; }
     .info-box.green { background: var(--green-pale); border: 1px solid #a8d8b8; color: #1a5030; }
+    .info-box.amber { background: #fff8e1; border: 1px solid #ffe082; color: #7a5d00; }
 
     /* ── CSV drop zone ── */
     .csv-drop {
@@ -172,7 +173,7 @@
 
     /* ── Errors ── */
     .errors { margin-bottom: 20px; background: var(--red-pale); border: 1px solid #f0b8b0; border-radius: 4px; padding: 12px 16px; border-left: 4px solid var(--red); }
-    .error-item { font-size: 13px; color: var(--red); }
+    .error-item { font-size: 13px; color: var(--red); padding: 2px 0; }
 
     /* ── Filter / toolbar ── */
     .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; background: var(--white); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; }
@@ -236,6 +237,17 @@
     .form-row { display: flex; gap: 12px; }
     .form-row > div { flex: 1; }
 
+    /* ── Task actions ── */
+    .task-actions { display: flex; gap: 4px; }
+    .task-action-btn {
+      background: none; border: 1px solid transparent; border-radius: 3px;
+      cursor: pointer; padding: 3px 6px; font-size: 13px; color: var(--text-light);
+      transition: all 0.15s; line-height: 1;
+    }
+    .task-action-btn:hover { background: var(--bg); border-color: var(--border); color: var(--text); }
+    .task-action-btn.delete:hover { color: var(--red); border-color: var(--red); background: var(--red-pale); }
+    .task-action-btn.complete:hover { color: var(--green); border-color: var(--green); background: var(--green-pale); }
+
     /* ── Deploy guide ── */
     .deploy-section { margin-top: 36px; border-top: 1px solid var(--border); padding-top: 20px; }
     .deploy-toggle { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 10px 0; color: var(--text-muted); font-size: 13px; }
@@ -246,7 +258,19 @@
     .deploy-step-num { width: 24px; height: 24px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
     .deploy-step-text { font-size: 13.5px; color: var(--text); line-height: 1.5; }
 
-    .hidden { display: none; }
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; padding: 12px 20px;
+      border-radius: 6px; font-size: 13.5px; font-weight: 600; z-index: 2000;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15); transform: translateY(100px); opacity: 0;
+      transition: all 0.3s ease;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: var(--green); color: #fff; }
+    .toast.error { background: var(--red); color: #fff; }
+    .toast.info { background: var(--blue); color: #fff; }
+
+    .hidden { display: none !important; }
 
     @media (max-width: 700px) {
       .sidebar { display: none; }
@@ -256,11 +280,12 @@
 </head>
 <body>
 
+<!-- Toast container -->
+<div class="toast" id="toast"></div>
+
 <!-- Top bar -->
 <div class="topbar">
-  <div class="topbar-logo">
-    Mine oppgaver
-  </div>
+  <div class="topbar-logo">Mine oppgaver</div>
   <div class="topbar-spacer"></div>
   <div class="topbar-avatar" id="avatarEl">?</div>
 </div>
@@ -327,7 +352,7 @@
   <!-- Stats -->
   <div class="stats hidden" id="statsBar"></div>
 
-  <!-- Connections panel (collapsible) -->
+  <!-- Connections panel -->
   <div id="connectionsSection" class="hidden" style="margin-bottom:24px;">
     <div class="connections">
 
@@ -346,6 +371,9 @@
         </div>
         <p class="conn-desc" id="jiraDesc" style="display:none;">Henter saker tildelt deg.</p>
         <div class="conn-form hidden" id="jiraForm">
+          <div class="info-box amber">
+            <strong>&#x26A0; CORS-begrensning:</strong> Jira blokkerer direkte API-kall fra nettlesere. Denne appen bruker CORS-proxyer som kan v&aelig;re ustabile. Hvis tilkoblingen feiler gjentatte ganger, vurder &aring; bruke appen fra en server eller Jira CLI.
+          </div>
           <div>
             <label>JIRA-DOMENE (f.eks. dinvirksomhet.atlassian.net)</label>
             <input id="jiraDomain" placeholder="dinvirksomhet.atlassian.net" />
@@ -357,10 +385,10 @@
           <div>
             <label>API-TOKEN <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank">Generer &#x2197;</a></label>
             <input id="jiraToken" type="password" placeholder="Ditt Jira API-token" />
-            <p style="font-size:11px;color:var(--text-light);margin-top:4px;">La feltet st&#xE5; tomt for &#xE5; beholde eksisterende token.</p>
+            <p style="font-size:11px;color:var(--text-light);margin-top:4px;">La feltet st&aring; tomt for &aring; beholde eksisterende token.</p>
           </div>
           <button class="btn btn-primary" onclick="connectJira()" style="align-self:flex-start;">Lagre og koble til</button>
-          <p class="conn-note">&#x1F512; Legitimasjon lagres kun i nettleseren din. Sendes aldri til andre servere enn Jira.</p>
+          <p class="conn-note">&#x1F512; Legitimasjon lagres kun i nettleseren din.</p>
         </div>
       </div>
 
@@ -377,29 +405,29 @@
             <button class="btn-sm disc hidden" id="msDiscBtn" onclick="disconnectMS()">Koble fra</button>
           </div>
         </div>
-        <p class="conn-desc" id="msDesc" style="display:none;">Henter To-Do-oppgaver og kalenderh&#xE6;ndelser.</p>
+        <p class="conn-desc" id="msDesc" style="display:none;">Henter To-Do-oppgaver og kalenderh&aelig;ndelser.</p>
         <div class="conn-form hidden" id="msForm">
           <div class="info-box blue">
-            <strong>Slik f&#xE5;r du et token:</strong><br/>
-            1. G&#xE5; til <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank" style="color:var(--blue);">Microsoft Graph Explorer &#x2197;</a><br/>
+            <strong>Slik f&aring;r du et token:</strong><br/>
+            1. G&aring; til <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank" style="color:var(--blue);">Microsoft Graph Explorer &#x2197;</a><br/>
             2. Klikk <strong>Sign in</strong> med din arbeidskonto<br/>
             3. Klikk fanen <strong>Access token</strong> og klikk <strong>Copy</strong><br/>
             4. Lim inn i feltet nedenfor<br/>
-            <span style="color:#6a8faf;font-size:11px;">Token utl&#xF8;per etter ~1 time. Bruk "Forny token" n&#xE5;r det er n&#xF8;dvendig.</span>
+            <span style="color:#6a8faf;font-size:11px;">Token utl&oslash;per etter ~1 time. Bruk "Forny token" n&aring;r det er n&oslash;dvendig.</span>
           </div>
           <div>
             <label>MS GRAPH ACCESS TOKEN</label>
             <textarea id="msTokenInput" style="min-height:80px;font-family:monospace;font-size:11px;" placeholder="Lim inn Microsoft Graph access token her..."></textarea>
           </div>
           <button class="btn btn-primary" onclick="connectMS()" style="align-self:flex-start;">Lagre og koble til</button>
-          <p class="conn-note">&#x1F512; Token brukes kun i nettleseren din for &#xE5; n&#xE5; Microsoft Graph. Lagres ikke p&#xE5; noen server.</p>
+          <p class="conn-note">&#x1F512; Token brukes kun i nettleseren din.</p>
         </div>
       </div>
 
     </div>
   </div>
 
-  <!-- CSV Import (collapsible) -->
+  <!-- CSV Import -->
   <div id="csvSection" class="hidden" style="margin-bottom:24px;">
     <div class="conn-panel csv-panel">
       <div class="conn-header">
@@ -408,14 +436,14 @@
       </div>
       <div>
         <div class="info-box green" style="margin-bottom:12px;">
-          <strong>Forventet CSV-format</strong> (f&#xF8;rste rad = overskrift):<br/>
-          <code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--green);">title</code> <span style="color:#5a7a5a;">(p&#xE5;krevd)</span>
+          <strong>Forventet CSV-format</strong> (f&oslash;rste rad = overskrift):<br/>
+          <code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--green);">title</code> <span style="color:#5a7a5a;">(p&aring;krevd)</span>
           &nbsp;<code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-size:11px;">project</code>
           &nbsp;<code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-size:11px;">priority</code>
           &nbsp;<code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-size:11px;">dueDate</code>
           &nbsp;<code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-size:11px;">status</code>
           &nbsp;<code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-size:11px;">notes</code><br/>
-          <span style="font-size:11px;color:#6a9a6a;">Eksempel: Fiks p&#xE5;loggingsfeil,Backend,H&#xF8;y,2026-03-15,Til behandling,Tildel Lars</span>
+          <span style="font-size:11px;color:#6a9a6a;">Eksempel: Fiks p&aring;loggingsfeil,Backend,High,2026-03-15,Til behandling,Tildel Lars</span>
         </div>
         <div class="csv-drop" id="csvDropZone"
           ondragover="event.preventDefault();this.style.borderColor='var(--green)'"
@@ -423,12 +451,12 @@
           ondrop="handleCsvDrop(event)"
           onclick="document.getElementById('csvFileInput').click()">
           <div style="font-size:28px;margin-bottom:8px;">&#x1F4C2;</div>
-          <div style="color:var(--green);font-weight:600;font-size:14px;">Klikk for &#xE5; velge CSV-fil</div>
+          <div style="color:var(--green);font-weight:600;font-size:14px;">Klikk for &aring; velge CSV-fil</div>
           <div style="color:var(--text-light);font-size:12px;margin-top:4px;">eller dra og slipp filen her</div>
         </div>
         <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleCsvFile(this.files[0])" />
         <div id="csvStatus" class="hidden" style="font-size:13px;text-align:center;padding:8px;border-radius:4px;margin-top:8px;"></div>
-        <p class="conn-note" style="margin-top:8px;">&#x1F4CC; CSV-oppgaver lagres som lokale oppgaver i nettleseren din. Sendes ikke noe sted.</p>
+        <p class="conn-note" style="margin-top:8px;">&#x1F4CC; CSV-oppgaver lagres som lokale oppgaver i nettleseren din.</p>
       </div>
     </div>
   </div>
@@ -438,7 +466,7 @@
 
   <!-- Toolbar -->
   <div class="toolbar hidden" id="filterBar">
-    <input type="text" placeholder="S&#xF8;k i oppgaver..." id="searchInput" oninput="renderTasks()" />
+    <input type="text" placeholder="S&oslash;k i oppgaver..." id="searchInput" oninput="renderTasks()" />
     <div class="toolbar-sep"></div>
     <div class="filter-btns">
       <button class="filter-btn active" data-filter="all"      onclick="setFilter('all')">Alle</button>
@@ -459,38 +487,41 @@
   <div id="taskList"></div>
 
   <!-- Debug panel -->
-  <div id="debugPanel" class="hidden" style="margin-bottom:24px;background:var(--white);border:1px solid var(--border);border-radius:6px;padding:16px;">
-    <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:10px;letter-spacing:0.5px;">DIAGNOSE-LOGG</div>
+  <div id="debugPanel" class="hidden" style="margin-top:24px;margin-bottom:24px;background:var(--white);border:1px solid var(--border);border-radius:6px;padding:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;">DIAGNOSE-LOGG</div>
+      <button class="btn-sm" onclick="debugLog.length=0;renderDebug();" style="font-size:11px;">T&oslash;m logg</button>
+    </div>
     <div id="debugLog" style="max-height:240px;overflow-y:auto;font-family:monospace;"></div>
   </div>
 
   <!-- Deploy guide -->
   <div class="deploy-section">
     <div class="deploy-toggle" onclick="toggleForm('deploy')">
-      <span>&#x1F680; Del med teamet ditt &mdash; Publiser p&#xE5; GitHub Pages (gratis)</span>
+      <span>&#x1F680; Del med teamet ditt &mdash; Publiser p&aring; GitHub Pages (gratis)</span>
       <span id="deployChevron">&#x25BC; vis</span>
     </div>
     <div class="deploy-guide hidden" id="deployForm">
-      <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:16px;">Ingen installasjon n&#xF8;dvendig &mdash; bare en gratis GitHub-konto. Alle f&#xE5;r en delbar URL.</p>
+      <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:16px;">Ingen installasjon n&oslash;dvendig &mdash; bare en gratis GitHub-konto.</p>
       <div class="deploy-step">
         <div class="deploy-step-num">1</div>
-        <div class="deploy-step-text">G&#xE5; til <a href="https://github.com" target="_blank" style="color:var(--blue);">github.com</a> og logg inn (eller opprett gratis konto).</div>
+        <div class="deploy-step-text">G&aring; til <a href="https://github.com" target="_blank" style="color:var(--blue);">github.com</a> og logg inn (eller opprett gratis konto).</div>
       </div>
       <div class="deploy-step">
         <div class="deploy-step-num">2</div>
-        <div class="deploy-step-text">Klikk <strong>+</strong> &#x2192; <strong>New repository</strong>. Gi det et navn, sett til <strong>Public</strong>, klikk Create.</div>
+        <div class="deploy-step-text">Klikk <strong>+</strong> &rarr; <strong>New repository</strong>. Gi det et navn, sett til <strong>Public</strong>, klikk Create.</div>
       </div>
       <div class="deploy-step">
         <div class="deploy-step-num">3</div>
-        <div class="deploy-step-text">Klikk <strong>uploading an existing file</strong>. Last opp denne filen <strong style="color:var(--orange);">omd&#xF8;pt til index.html</strong>. Commit.</div>
+        <div class="deploy-step-text">Klikk <strong>uploading an existing file</strong>. Last opp denne filen som <strong style="color:var(--orange);">index.html</strong>. Commit.</div>
       </div>
       <div class="deploy-step">
         <div class="deploy-step-num">4</div>
-        <div class="deploy-step-text">G&#xE5; til <strong>Settings &#x2192; Pages</strong>, velg branch <strong>main</strong>, klikk Save.</div>
+        <div class="deploy-step-text">G&aring; til <strong>Settings &rarr; Pages</strong>, velg branch <strong>main</strong>, klikk Save.</div>
       </div>
       <div class="deploy-step">
         <div class="deploy-step-num" style="background:var(--green);">&#x2713;</div>
-        <div class="deploy-step-text">Ferdig! Appen er tilgjengelig p&#xE5; <code style="background:var(--bg);padding:1px 6px;border-radius:3px;">https://BRUKERNAVN.github.io/REPO-NAVN/</code></div>
+        <div class="deploy-step-text">Ferdig! Appen er tilgjengelig p&aring; <code style="background:var(--bg);padding:1px 6px;border-radius:3px;">https://BRUKERNAVN.github.io/REPO-NAVN/</code></div>
       </div>
     </div>
   </div>
@@ -507,7 +538,7 @@
     <div class="modal-form">
       <div>
         <label>TITTEL *</label>
-        <input id="newTitle" placeholder="Hva m&#xE5; gj&#xF8;res?" />
+        <input id="newTitle" placeholder="Hva m&aring; gj&oslash;res?" />
       </div>
       <div class="form-row">
         <div>
@@ -538,6 +569,57 @@
   </div>
 </div>
 
+<!-- Edit Task Modal -->
+<div class="modal-overlay hidden" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Rediger oppgave</h3>
+      <button class="modal-close" onclick="closeEditModal()">&#x2715;</button>
+    </div>
+    <div class="modal-form">
+      <input type="hidden" id="editTaskId" />
+      <div>
+        <label>TITTEL *</label>
+        <input id="editTitle" placeholder="Hva m&aring; gj&oslash;res?" />
+      </div>
+      <div class="form-row">
+        <div>
+          <label>PROSJEKT / LISTE</label>
+          <input id="editProject" placeholder="f.eks. Personlig" />
+        </div>
+        <div>
+          <label>PRIORITET</label>
+          <select id="editPriority">
+            <option>Highest</option><option>High</option>
+            <option>Medium</option><option>Low</option><option>Lowest</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label>FORFALLSDATO</label>
+          <input id="editDueDate" type="date" />
+        </div>
+        <div>
+          <label>STATUS</label>
+          <select id="editStatus">
+            <option>Til behandling</option><option>P&aring;g&aring;r</option>
+            <option>Fullf&oslash;rt</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>NOTATER</label>
+        <textarea id="editNotes" placeholder="Valgfrie notater..." style="min-height:70px;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="closeEditModal()">Avbryt</button>
+        <button class="btn btn-primary" onclick="saveEditTask()">Lagre endringer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ─── State ────────────────────────────────────────────────────────────────────
 let remoteTasks = [];
@@ -546,55 +628,84 @@ let currentFilter = 'all';
 let jiraCreds = null;
 let msToken   = null;
 
+// ─── Toast notifications ──────────────────────────────────────────────────────
+function showToast(msg, type) {
+  type = type || 'info';
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + type;
+  // Force reflow then show
+  void el.offsetWidth;
+  el.classList.add('show');
+  clearTimeout(el._timer);
+  el._timer = setTimeout(function() { el.classList.remove('show'); }, 3500);
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 (function init() {
-  try { jiraCreds = JSON.parse(localStorage.getItem('tm_jira') || 'null'); } catch {}
-  try { msToken = localStorage.getItem('tm_ms_token') || null; } catch {}
-  try { localTasks = JSON.parse(localStorage.getItem('tm_local_tasks') || '[]'); } catch {}
+  try { jiraCreds = JSON.parse(localStorage.getItem('tm_jira') || 'null'); } catch(e) { jiraCreds = null; }
+  try { msToken = localStorage.getItem('tm_ms_token') || null; } catch(e) { msToken = null; }
+  try { localTasks = JSON.parse(localStorage.getItem('tm_local_tasks') || '[]'); } catch(e) { localTasks = []; }
+  // Validate localTasks is actually an array
+  if (!Array.isArray(localTasks)) localTasks = [];
   if (jiraCreds) setJiraConnectedUI();
   if (msToken)   setMSConnectedUI();
-  // Auto-open connections panel if nothing is connected yet
-  if (!jiraCreds && !msToken) {
+  if (!jiraCreds && !msToken && localTasks.length === 0) {
     document.getElementById('connectionsSection').classList.remove('hidden');
   }
+  renderTasks();
   if (jiraCreds || msToken) {
-    // Show loading state immediately while fetch runs
-    document.getElementById('taskList').innerHTML = '<div class="empty"><div class="empty-title">&#x27F3; Laster oppgaver&#x2026;</div></div>';
     loadData();
   }
-  renderTasks();
 })();
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
-const todayStr   = () => new Date().toISOString().split('T')[0];
-const isOverdue  = d => d && new Date(d) < new Date(todayStr());
-const isDueToday = d => d && d.split('T')[0] === todayStr();
-const formatDate = d => d ? new Date(d).toLocaleDateString('no-NO', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
-const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+function isOverdue(d) {
+  if (!d) return false;
+  var dateStr = d.split('T')[0];
+  return dateStr < todayStr();
+}
+function isDueToday(d) {
+  if (!d) return false;
+  return d.split('T')[0] === todayStr();
+}
+function formatDate(d) {
+  if (!d) return null;
+  try {
+    return new Date(d + 'T00:00:00').toLocaleDateString('no-NO', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch(e) {
+    return d;
+  }
+}
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
 // ─── Panel toggles ────────────────────────────────────────────────────────────
 function toggleForm(which) {
   if (which === 'connections') {
-    const s = document.getElementById('connectionsSection');
+    var s = document.getElementById('connectionsSection');
     s.classList.toggle('hidden');
-    // Scroll to it when opening
     if (!s.classList.contains('hidden')) s.scrollIntoView({ behavior: 'smooth', block: 'start' });
     return;
   }
   if (which === 'csv') {
-    const s = document.getElementById('csvSection');
-    s.classList.toggle('hidden');
+    document.getElementById('csvSection').classList.toggle('hidden');
     return;
   }
   if (which === 'deploy') {
-    const f = document.getElementById('deployForm');
+    var f = document.getElementById('deployForm');
     f.classList.toggle('hidden');
     document.getElementById('deployChevron').textContent = f.classList.contains('hidden') ? '\u25BC vis' : '\u25B2 skjul';
     return;
   }
-  const formEl = document.getElementById(which + 'Form');
+  var formEl = document.getElementById(which + 'Form');
+  if (!formEl) return;
   formEl.classList.toggle('hidden');
-  const isOpen = !formEl.classList.contains('hidden');
+  var isOpen = !formEl.classList.contains('hidden');
   if (which === 'jira') {
     if (jiraCreds) {
       document.getElementById('jiraEditBtn').textContent = isOpen ? '\u2716 Lukk' : '\u270E Rediger';
@@ -620,10 +731,10 @@ function toggleForm(which) {
 // ─── Sidebar filter sync ──────────────────────────────────────────────────────
 function setFilter(f) {
   currentFilter = f;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
-  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
-  const map = { all: 0, jira: 1, outlook: 2, calendar: 3, local: 4 };
-  const items = document.querySelectorAll('.sidebar-item');
+  document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.filter === f); });
+  document.querySelectorAll('.sidebar-item').forEach(function(b) { b.classList.remove('active'); });
+  var map = { all: 0, jira: 1, outlook: 2, calendar: 3, local: 4 };
+  var items = document.querySelectorAll('.sidebar-section:first-child .sidebar-item');
   if (items[map[f]] !== undefined) items[map[f]].classList.add('active');
   renderTasks();
 }
@@ -651,31 +762,27 @@ function setMSConnectedUI() {
   document.getElementById('msForm').classList.add('hidden');
   document.getElementById('msDesc').style.display = 'block';
   document.getElementById('msEditBtn').textContent = '\u270E Forny token';
-  // Try to read name from JWT — must not crash if token is malformed
   try {
-    const parts = msToken.split('.');
+    var parts = msToken.split('.');
     if (parts.length === 3) {
-      // Fix base64 padding before decoding
-      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-      const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
-      const payload = JSON.parse(atob(padded));
-      const name = payload.name || payload.preferred_username || '';
+      var base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      var padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+      var payload = JSON.parse(atob(padded));
+      var name = payload.name || payload.preferred_username || '';
       if (name) {
-        const words = name.trim().split(' ');
+        var words = name.trim().split(' ');
         document.getElementById('avatarEl').textContent =
           (words[0][0] + (words[1] ? words[1][0] : '')).toUpperCase();
       }
     }
-  } catch (e) {
-    // Avatar parsing failed — not critical, ignore
-  }
+  } catch (e) { /* ignore avatar parse errors */ }
 }
 
 // ─── Disconnect ───────────────────────────────────────────────────────────────
 function disconnectJira() {
   if (!confirm('Koble fra Jira? Lokale og CSV-oppgaver beholdes.')) return;
   jiraCreds = null; localStorage.removeItem('tm_jira');
-  remoteTasks = remoteTasks.filter(t => t.source !== 'jira');
+  remoteTasks = remoteTasks.filter(function(t) { return t.source !== 'jira'; });
   document.getElementById('jiraPanel').classList.remove('connected');
   document.getElementById('jiraBadge').textContent = 'Ikke tilkoblet';
   document.getElementById('jiraBadge').className = 'badge badge-disconnected';
@@ -685,12 +792,13 @@ function disconnectJira() {
   document.getElementById('jiraForm').classList.add('hidden');
   document.getElementById('jiraDesc').style.display = 'none';
   renderTasks();
+  showToast('Jira frakoblet', 'info');
 }
 
 function disconnectMS() {
   if (!confirm('Koble fra Microsoft 365? Lokale og CSV-oppgaver beholdes.')) return;
   msToken = null; localStorage.removeItem('tm_ms_token');
-  remoteTasks = remoteTasks.filter(t => t.source !== 'outlook' && t.source !== 'calendar');
+  remoteTasks = remoteTasks.filter(function(t) { return t.source !== 'outlook' && t.source !== 'calendar'; });
   document.getElementById('msPanel').classList.remove('connected');
   document.getElementById('msBadge').textContent = 'Ikke tilkoblet';
   document.getElementById('msBadge').className = 'badge badge-disconnected';
@@ -701,39 +809,43 @@ function disconnectMS() {
   document.getElementById('msDesc').style.display = 'none';
   document.getElementById('avatarEl').textContent = '?';
   renderTasks();
+  showToast('Microsoft 365 frakoblet', 'info');
 }
 
 function showErrors(errs) {
-  const box = document.getElementById('errorsBox');
-  if (!errs.length) { box.classList.add('hidden'); return; }
-  box.innerHTML = errs.map(e => '<div class="error-item">&#x26A0; ' + esc(e) + '</div>').join('');
+  var box = document.getElementById('errorsBox');
+  if (!errs || !errs.length) { box.classList.add('hidden'); return; }
+  box.innerHTML = errs.map(function(e) { return '<div class="error-item">&#x26A0; ' + esc(e) + '</div>'; }).join('');
   box.classList.remove('hidden');
 }
 
 // ─── Connect ──────────────────────────────────────────────────────────────────
 function connectJira() {
-  const domain   = document.getElementById('jiraDomain').value.trim();
-  const email    = document.getElementById('jiraEmail').value.trim();
-  const newToken = document.getElementById('jiraToken').value.trim();
+  var domain   = document.getElementById('jiraDomain').value.trim();
+  var email    = document.getElementById('jiraEmail').value.trim();
+  var newToken = document.getElementById('jiraToken').value.trim();
   if (!domain || !email) { alert('Fyll inn Jira-domene og e-post.'); return; }
-  const apiToken = newToken || (jiraCreds && jiraCreds.apiToken) || '';
+  var apiToken = newToken || (jiraCreds && jiraCreds.apiToken) || '';
   if (!apiToken) { alert('Skriv inn ditt Jira API-token.'); return; }
-  jiraCreds = { domain, email, apiToken };
+  // Clean up domain
+  domain = domain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  jiraCreds = { domain: domain, email: email, apiToken: apiToken };
   localStorage.setItem('tm_jira', JSON.stringify(jiraCreds));
   setJiraConnectedUI();
-  // Close connections panel after saving
   document.getElementById('jiraForm').classList.add('hidden');
+  showToast('Jira tilkoblet!', 'success');
   loadData();
 }
 
 function connectMS() {
-  const token = document.getElementById('msTokenInput').value.trim();
+  var token = document.getElementById('msTokenInput').value.trim();
   if (!token) { alert('Lim inn Microsoft Graph access token.'); return; }
   msToken = token;
   localStorage.setItem('tm_ms_token', msToken);
   document.getElementById('msTokenInput').value = '';
   setMSConnectedUI();
   document.getElementById('msForm').classList.add('hidden');
+  showToast('Microsoft 365 tilkoblet!', 'success');
   loadData();
 }
 
@@ -741,19 +853,19 @@ function connectMS() {
 function handleCsvDrop(e) {
   e.preventDefault();
   document.getElementById('csvDropZone').style.borderColor = 'var(--border)';
-  const file = e.dataTransfer.files[0];
+  var file = e.dataTransfer.files[0];
   if (file) handleCsvFile(file);
 }
 
 function handleCsvFile(file) {
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
+  var reader = new FileReader();
+  reader.onload = function(e) {
     try {
-      const imported = parseCSV(e.target.result);
+      var imported = parseCSV(e.target.result);
       if (!imported.length) { showCsvStatus('Ingen gyldige oppgaver funnet i CSV.', false); return; }
-      localTasks = [...imported, ...localTasks];
-      localStorage.setItem('tm_local_tasks', JSON.stringify(localTasks));
+      localTasks = imported.concat(localTasks);
+      saveLocalTasks();
       showCsvStatus('Importerte ' + imported.length + ' oppgave' + (imported.length > 1 ? 'r' : '') + ' fra CSV!', true);
       renderTasks();
     } catch (err) { showCsvStatus('Kunne ikke lese CSV: ' + err.message, false); }
@@ -763,23 +875,25 @@ function handleCsvFile(file) {
 }
 
 function parseCSV(text) {
-  const lines = text.trim().split(/\r?\n/);
+  var lines = text.trim().split(/\r?\n/);
   if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
-  const tasks = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cols = [];
-    let cur = '', inQ = false;
-    for (const ch of lines[i] + ',') {
+  var headers = lines[0].split(',').map(function(h) { return h.trim().toLowerCase().replace(/['"]/g, ''); });
+  var tasks = [];
+  for (var i = 1; i < lines.length; i++) {
+    var cols = [];
+    var cur = '', inQ = false;
+    var line = lines[i] + ',';
+    for (var j = 0; j < line.length; j++) {
+      var ch = line[j];
       if (ch === '"') { inQ = !inQ; }
       else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
       else cur += ch;
     }
-    const get = key => (cols[headers.indexOf(key)] || '').replace(/^"|"$/g,'').trim();
-    const title = get('title');
+    var get = function(key) { var idx = headers.indexOf(key); return idx >= 0 ? (cols[idx] || '').replace(/^"|"$/g,'').trim() : ''; };
+    var title = get('title');
     if (!title) continue;
     tasks.push({
-      id: 'csv-' + Date.now() + '-' + i, source: 'local', key: null, title,
+      id: 'csv-' + Date.now() + '-' + i, source: 'local', key: null, title: title,
       project:  get('project')  || 'CSV-import',
       priority: get('priority') || 'Medium',
       dueDate:  get('duedate') || get('due_date') || get('due date') || null,
@@ -792,147 +906,193 @@ function parseCSV(text) {
 }
 
 function showCsvStatus(msg, ok) {
-  const el = document.getElementById('csvStatus');
+  var el = document.getElementById('csvStatus');
   el.textContent = (ok ? '\u2713 ' : '\u26A0 ') + msg;
   el.style.color      = ok ? 'var(--green)' : 'var(--red)';
   el.style.background = ok ? 'var(--green-pale)' : 'var(--red-pale)';
   el.classList.remove('hidden');
-  setTimeout(() => el.classList.add('hidden'), 5000);
+  setTimeout(function() { el.classList.add('hidden'); }, 5000);
+}
+
+// ─── Local task persistence ───────────────────────────────────────────────────
+function saveLocalTasks() {
+  try {
+    localStorage.setItem('tm_local_tasks', JSON.stringify(localTasks));
+  } catch(e) {
+    dbg('Feil ved lagring: ' + e.message, 'error');
+  }
 }
 
 // ─── Debug log ────────────────────────────────────────────────────────────────
-const debugLog = [];
+var debugLog = [];
 function dbg(msg, type) {
-  const time = new Date().toLocaleTimeString('no-NO');
-  debugLog.unshift({ time, msg, type: type || 'info' });
-  if (debugLog.length > 20) debugLog.pop();
-  const el = document.getElementById('debugPanel');
+  var time = new Date().toLocaleTimeString('no-NO');
+  debugLog.unshift({ time: time, msg: msg, type: type || 'info' });
+  if (debugLog.length > 40) debugLog.pop();
+  var el = document.getElementById('debugPanel');
   if (el && !el.classList.contains('hidden')) renderDebug();
 }
 function renderDebug() {
-  const el = document.getElementById('debugLog');
+  var el = document.getElementById('debugLog');
   if (!el) return;
-  el.innerHTML = debugLog.map(d => {
-    const color = d.type === 'error' ? 'var(--red)' : d.type === 'ok' ? 'var(--green)' : 'var(--text-muted)';
+  if (debugLog.length === 0) {
+    el.innerHTML = '<div style="color:var(--text-light);font-size:12px;padding:8px 0;">Ingen loggoppf&oslash;ringer enn&aring;.</div>';
+    return;
+  }
+  el.innerHTML = debugLog.map(function(d) {
+    var color = d.type === 'error' ? 'var(--red)' : d.type === 'ok' ? 'var(--green)' : 'var(--text-muted)';
     return '<div style="padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;">' +
       '<span style="color:var(--text-light);margin-right:8px;">' + d.time + '</span>' +
       '<span style="color:' + color + ';">' + esc(d.msg) + '</span></div>';
   }).join('');
 }
 function toggleDebug() {
-  const p = document.getElementById('debugPanel');
+  var p = document.getElementById('debugPanel');
   p.classList.toggle('hidden');
   if (!p.classList.contains('hidden')) renderDebug();
 }
 
 // ─── Fetchers ─────────────────────────────────────────────────────────────────
-async function fetchJiraIssues({ domain, email, apiToken }) {
-  const jql = encodeURIComponent('assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC');
-  const jiraUrl = 'https://' + domain + '/rest/api/3/search?jql=' + jql + '&maxResults=50&fields=summary,status,priority,duedate,project,issuetype';
-  const auth = 'Basic ' + btoa(email + ':' + apiToken);
-  const proxies = [
-    { name: 'corsproxy.io', url: 'https://corsproxy.io/?url=' + encodeURIComponent(jiraUrl) },
-    { name: 'allorigins',   url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(jiraUrl) },
-    { name: 'thingproxy',  url: 'https://thingproxy.freeboard.io/fetch/' + jiraUrl },
+async function fetchJiraIssues(creds) {
+  var domain = creds.domain;
+  var email = creds.email;
+  var apiToken = creds.apiToken;
+  var jql = encodeURIComponent('assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC');
+  var jiraUrl = 'https://' + domain + '/rest/api/3/search?jql=' + jql + '&maxResults=50&fields=summary,status,priority,duedate,project,issuetype';
+  var auth = 'Basic ' + btoa(email + ':' + apiToken);
+
+  // Try multiple CORS proxies with better error handling
+  var proxies = [
+    { name: 'corsproxy.io',  url: 'https://corsproxy.io/?url=' + encodeURIComponent(jiraUrl) },
+    { name: 'corsproxy.org', url: 'https://corsproxy.org/?url=' + encodeURIComponent(jiraUrl) },
+    { name: 'allorigins',    url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(jiraUrl) },
   ];
-  let lastError = '';
-  for (const proxy of proxies) {
+
+  var lastError = '';
+  for (var i = 0; i < proxies.length; i++) {
+    var proxy = proxies[i];
     try {
-      dbg('Jira: prøver ' + proxy.name + '...');
-      const res = await fetch(proxy.url, { headers: { 'Authorization': auth, 'Accept': 'application/json' } });
+      dbg('Jira: pr\u00F8ver ' + proxy.name + '...');
+      var controller = new AbortController();
+      var timeoutId = setTimeout(function() { controller.abort(); }, 15000);
+      var res = await fetch(proxy.url, {
+        headers: { 'Authorization': auth, 'Accept': 'application/json' },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
       dbg('Jira: ' + proxy.name + ' svarte HTTP ' + res.status);
-      if (res.status === 401) throw new Error('Autentisering mislyktes — sjekk e-post og API-token.');
-      if (res.status === 403) throw new Error('Tilgang nektet — tokenet mangler kanskje tillatelser.');
-      if (res.status === 404) throw new Error('Domene ikke funnet — sjekk domenenavnet.');
+      if (res.status === 401) throw new Error('Autentisering mislyktes \u2014 sjekk e-post og API-token.');
+      if (res.status === 403) throw new Error('Tilgang nektet \u2014 tokenet mangler kanskje tillatelser.');
+      if (res.status === 404) throw new Error('Domene ikke funnet \u2014 sjekk domenenavnet.');
       if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
-      const data = await res.json();
-      if (!data.issues) throw new Error('Uventet svar: ' + JSON.stringify(data).slice(0, 120));
+      var data = await res.json();
+      if (!data.issues) throw new Error('Uventet svar fra Jira');
       dbg('Jira: hentet ' + data.issues.length + ' saker via ' + proxy.name, 'ok');
-      return data.issues.map(issue => ({
-        id: 'jira-' + issue.id, source: 'jira', key: issue.key,
-        title:     issue.fields.summary,
-        status:    issue.fields.status?.name    || 'Ukjent',
-        priority:  issue.fields.priority?.name  || 'Medium',
-        dueDate:   issue.fields.duedate          || null,
-        project:   issue.fields.project?.name   || '',
-        issueType: issue.fields.issuetype?.name || 'Task',
-        url: 'https://' + domain + '/browse/' + issue.key
-      }));
+      return data.issues.map(function(issue) {
+        return {
+          id: 'jira-' + issue.id, source: 'jira', key: issue.key,
+          title:     issue.fields.summary,
+          status:    (issue.fields.status && issue.fields.status.name) || 'Ukjent',
+          priority:  (issue.fields.priority && issue.fields.priority.name) || 'Medium',
+          dueDate:   issue.fields.duedate || null,
+          project:   (issue.fields.project && issue.fields.project.name) || '',
+          issueType: (issue.fields.issuetype && issue.fields.issuetype.name) || 'Task',
+          url: 'https://' + domain + '/browse/' + issue.key
+        };
+      });
     } catch (e) {
-      dbg('Jira: ' + proxy.name + ' feilet — ' + e.message, 'error');
-      if (e.message.startsWith('Autentisering') || e.message.startsWith('Tilgang') || e.message.startsWith('Domene')) throw new Error('Jira: ' + e.message);
+      clearTimeout(timeoutId);
+      dbg('Jira: ' + proxy.name + ' feilet \u2014 ' + e.message, 'error');
+      if (e.message.indexOf('Autentisering') === 0 || e.message.indexOf('Tilgang') === 0 || e.message.indexOf('Domene') === 0) {
+        throw new Error('Jira: ' + e.message);
+      }
       lastError = e.message;
     }
   }
-  throw new Error('Jira: Alle proxyer feilet. (' + lastError + ')');
+  throw new Error('Jira: Alle proxyer feilet. Siste feil: ' + lastError);
 }
 
 async function fetchMSTasks(accessToken) {
   dbg('Microsoft: henter To-Do-lister...');
-  const res = await fetch('https://graph.microsoft.com/v1.0/me/todo/lists', { headers: { Authorization: 'Bearer ' + accessToken } });
-  if (res.status === 401) throw new Error('Microsoft: Token er utløpt — forny det via "Tilkoblinger".');
+  var res = await fetch('https://graph.microsoft.com/v1.0/me/todo/lists', {
+    headers: { Authorization: 'Bearer ' + accessToken }
+  });
+  if (res.status === 401) throw new Error('Microsoft: Token er utl\u00F8pt \u2014 forny det via "Tilkoblinger".');
   if (!res.ok) throw new Error('Microsoft To-Do: HTTP ' + res.status);
-  const listsData = await res.json();
-  const lists = listsData.value || [];
+  var listsData = await res.json();
+  var lists = listsData.value || [];
   dbg('Microsoft: fant ' + lists.length + ' To-Do-lister');
-  const all = [];
-  for (const list of lists) {
-    const tRes = await fetch(
-      'https://graph.microsoft.com/v1.0/me/todo/lists/' + list.id + '/tasks?$filter=status ne \'completed\'&$top=50',
-      { headers: { Authorization: 'Bearer ' + accessToken } }
-    );
-    if (!tRes.ok) { dbg('Microsoft: kunne ikke lese liste "' + list.displayName + '" — HTTP ' + tRes.status, 'error'); continue; }
-    const tData = await tRes.json();
-    const tasks = tData.value || [];
-    dbg('Microsoft To-Do "' + list.displayName + '": ' + tasks.length + ' oppgaver', tasks.length ? 'ok' : 'info');
-    tasks.forEach(t => {
-      all.push({
-        id: 'ms-' + t.id, source: 'outlook', key: null, title: t.title,
-        status:   t.status === 'inProgress' ? 'P\u00E5g\u00E5r' : 'Til behandling',
-        priority: t.importance === 'high' ? 'High' : t.importance === 'low' ? 'Low' : 'Medium',
-        dueDate:  t.dueDateTime?.dateTime?.split('T')[0] || null,
-        project:  list.displayName, issueType: 'Oppgave', url: null
+  var all = [];
+  for (var i = 0; i < lists.length; i++) {
+    var list = lists[i];
+    try {
+      var tRes = await fetch(
+        'https://graph.microsoft.com/v1.0/me/todo/lists/' + list.id + "/tasks?$filter=status ne 'completed'&$top=50",
+        { headers: { Authorization: 'Bearer ' + accessToken } }
+      );
+      if (!tRes.ok) { dbg('Microsoft: kunne ikke lese liste "' + list.displayName + '" \u2014 HTTP ' + tRes.status, 'error'); continue; }
+      var tData = await tRes.json();
+      var tasks = tData.value || [];
+      dbg('Microsoft To-Do "' + list.displayName + '": ' + tasks.length + ' oppgaver', tasks.length ? 'ok' : 'info');
+      tasks.forEach(function(t) {
+        all.push({
+          id: 'ms-' + t.id, source: 'outlook', key: null, title: t.title,
+          status:   t.status === 'inProgress' ? 'P\u00E5g\u00E5r' : 'Til behandling',
+          priority: t.importance === 'high' ? 'High' : t.importance === 'low' ? 'Low' : 'Medium',
+          dueDate:  (t.dueDateTime && t.dueDateTime.dateTime) ? t.dueDateTime.dateTime.split('T')[0] : null,
+          project:  list.displayName, issueType: 'Oppgave', url: null
+        });
       });
-    });
+    } catch(e) {
+      dbg('Microsoft: Feil ved liste "' + list.displayName + '": ' + e.message, 'error');
+    }
   }
   return all;
 }
 
 async function fetchMSCalendar(accessToken) {
   dbg('Microsoft: henter kalender (neste 7 dager)...');
-  const start = new Date().toISOString();
-  const end   = new Date(Date.now() + 7*24*60*60*1000).toISOString();
-  const res = await fetch(
-    'https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=' + start + '&endDateTime=' + end + '&$select=subject,start,end,webLink&$top=30',
-    { headers: { Authorization: 'Bearer ' + accessToken } }
-  );
-  if (!res.ok) { dbg('Microsoft Kalender: HTTP ' + res.status, 'error'); return []; }
-  const data = await res.json();
-  const events = data.value || [];
-  dbg('Microsoft Kalender: ' + events.length + ' hendelser', events.length ? 'ok' : 'info');
-  return events.map(e => ({
-    id: 'cal-' + e.id, source: 'calendar', key: null, title: e.subject,
-    status: 'Kommende', priority: 'Medium',
-    dueDate: e.start?.dateTime?.split('T')[0] || null,
-    project: 'Kalender', issueType: 'H\u00E6ndelse', url: e.webLink || null
-  }));
+  var start = new Date().toISOString();
+  var end   = new Date(Date.now() + 7*24*60*60*1000).toISOString();
+  try {
+    var res = await fetch(
+      'https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=' + start + '&endDateTime=' + end + '&$select=subject,start,end,webLink&$top=30',
+      { headers: { Authorization: 'Bearer ' + accessToken } }
+    );
+    if (!res.ok) { dbg('Microsoft Kalender: HTTP ' + res.status, 'error'); return []; }
+    var data = await res.json();
+    var events = data.value || [];
+    dbg('Microsoft Kalender: ' + events.length + ' hendelser', events.length ? 'ok' : 'info');
+    return events.map(function(e) {
+      return {
+        id: 'cal-' + e.id, source: 'calendar', key: null, title: e.subject,
+        status: 'Kommende', priority: 'Medium',
+        dueDate: (e.start && e.start.dateTime) ? e.start.dateTime.split('T')[0] : null,
+        project: 'Kalender', issueType: 'H\u00E6ndelse', url: e.webLink || null
+      };
+    });
+  } catch(e) {
+    dbg('Microsoft Kalender: ' + e.message, 'error');
+    return [];
+  }
 }
 
 async function loadData() {
   if (!jiraCreds && !msToken) return;
-  const btn = document.getElementById('refreshBtn');
+  var btn = document.getElementById('refreshBtn');
   btn.textContent = '\u27F3 Oppdaterer...'; btn.disabled = true;
   document.getElementById('taskList').innerHTML = '<div class="empty"><div class="empty-title" style="color:var(--blue);">&#x27F3; Henter oppgaver&#x2026;</div></div>';
   dbg('=== Starter datahenting ===');
-  const errs = []; let fetched = [];
+  var errs = [];
+  var fetched = [];
   if (jiraCreds) {
-    try { const r = await fetchJiraIssues(jiraCreds); fetched = [...fetched, ...r]; }
+    try { var r = await fetchJiraIssues(jiraCreds); fetched = fetched.concat(r); }
     catch (e) { errs.push(e.message); }
   }
   if (msToken) {
-    try { const r = await fetchMSTasks(msToken); fetched = [...fetched, ...r]; }
+    try { var r = await fetchMSTasks(msToken); fetched = fetched.concat(r); }
     catch (e) { errs.push(e.message); dbg(e.message, 'error'); }
-    try { const r = await fetchMSCalendar(msToken); fetched = [...fetched, ...r]; }
+    try { var r = await fetchMSCalendar(msToken); fetched = fetched.concat(r); }
     catch (e) { errs.push(e.message); dbg(e.message, 'error'); }
   }
   dbg('=== Ferdig: ' + fetched.length + ' oppgaver totalt ===', fetched.length ? 'ok' : 'error');
@@ -940,7 +1100,9 @@ async function loadData() {
   showErrors(errs);
   btn.textContent = '\u27F3 Oppdater'; btn.disabled = false;
   renderTasks();
-  // Auto-show debug panel if nothing loaded and there were errors
+  if (fetched.length > 0) {
+    showToast('Hentet ' + fetched.length + ' oppgaver', 'success');
+  }
   if (fetched.length === 0 && errs.length > 0) {
     document.getElementById('debugPanel').classList.remove('hidden');
     renderDebug();
@@ -948,25 +1110,25 @@ async function loadData() {
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
-const SOURCE_BADGE = {
+var SOURCE_BADGE = {
   jira:     '<span class="source-badge badge-jira">JIRA</span>',
   outlook:  '<span class="source-badge badge-outlook">TO-DO</span>',
   calendar: '<span class="source-badge badge-calendar">KALENDER</span>',
   local:    '<span class="source-badge badge-local">LOKALT</span>',
 };
-const PRIORITY_COLORS = { Highest: '#c0392b', High: '#c25a00', Medium: '#b8860b', Low: '#1a7a3c', Lowest: '#8a9ab0' };
-const PRIORITY_ORDER  = { Highest: 0, High: 1, Medium: 2, Low: 3, Lowest: 4 };
+var PRIORITY_COLORS = { Highest: '#c0392b', High: '#c25a00', Medium: '#b8860b', Low: '#1a7a3c', Lowest: '#8a9ab0' };
+var PRIORITY_ORDER  = { Highest: 0, High: 1, Medium: 2, Low: 3, Lowest: 4 };
 
 function renderTasks() {
-  const all    = [...localTasks, ...remoteTasks];
-  const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
-  const sortBy = document.getElementById('sortSelect')?.value || 'dueDate';
+  var all    = localTasks.concat(remoteTasks);
+  var search = (document.getElementById('searchInput') ? document.getElementById('searchInput').value : '').toLowerCase();
+  var sortBy = document.getElementById('sortSelect') ? document.getElementById('sortSelect').value : 'dueDate';
 
-  const filtered = all.filter(t => {
+  var filtered = all.filter(function(t) {
     if (currentFilter !== 'all' && t.source !== currentFilter) return false;
     if (search && !t.title.toLowerCase().includes(search) && !(t.project||'').toLowerCase().includes(search)) return false;
     return true;
-  }).sort((a, b) => {
+  }).sort(function(a, b) {
     if (sortBy === 'dueDate') {
       if (!a.dueDate && !b.dueDate) return 0;
       if (!a.dueDate) return 1; if (!b.dueDate) return -1;
@@ -977,43 +1139,56 @@ function renderTasks() {
   });
 
   // Stats
-  const statsBar = document.getElementById('statsBar');
+  var statsBar = document.getElementById('statsBar');
   if (all.length > 0) {
     statsBar.classList.remove('hidden');
-    const overdue = all.filter(t => isOverdue(t.dueDate)).length;
-    const today_  = all.filter(t => isDueToday(t.dueDate)).length;
+    var overdue = all.filter(function(t) { return isOverdue(t.dueDate); }).length;
+    var today_  = all.filter(function(t) { return isDueToday(t.dueDate); }).length;
     statsBar.innerHTML =
       '<div class="stat-card primary"><div class="stat-value">' + all.length + '</div><div class="stat-label">Totalt</div></div>' +
       '<div class="stat-card warn"><div class="stat-value">' + today_ + '</div><div class="stat-label">Forfaller i dag</div></div>' +
       '<div class="stat-card danger"><div class="stat-value">' + overdue + '</div><div class="stat-label">Forfalt</div></div>';
   } else { statsBar.classList.add('hidden'); }
 
-  const filterBar = document.getElementById('filterBar');
+  var filterBar = document.getElementById('filterBar');
   if (all.length > 0) filterBar.classList.remove('hidden');
 
-  const list = document.getElementById('taskList');
+  var list = document.getElementById('taskList');
   if (filtered.length === 0) {
     if (!jiraCreds && !msToken && localTasks.length === 0) {
-      list.innerHTML = '<div class="empty"><div class="empty-icon">&#x1F50C;</div><div class="empty-title">Ingen tilkoblinger konfigurert</div><div class="empty-sub">Klikk "Tilkoblinger" i sidepanelet for &#xE5; koble til Jira eller Microsoft 365, eller importer en CSV-fil.</div></div>';
+      list.innerHTML = '<div class="empty"><div class="empty-icon">&#x1F50C;</div><div class="empty-title">Ingen tilkoblinger konfigurert</div><div class="empty-sub">Klikk "Tilkoblinger" i sidepanelet for \u00E5 koble til Jira eller Microsoft 365, eller importer en CSV-fil.<br/><br/>Du kan ogs\u00E5 legge til oppgaver manuelt med "+ Ny oppgave"-knappen.</div></div>';
     } else if (all.length > 0) {
       list.innerHTML = '<div class="empty"><div class="empty-title">Ingen oppgaver samsvarer med filteret ditt.</div></div>';
+    } else {
+      list.innerHTML = '';
     }
-    // If credentials exist but no tasks yet — loadData() will re-render when done, so show nothing
     return;
   }
 
-  const rows = filtered.map(task => {
-    const overdue = isOverdue(task.dueDate);
-    const today_  = isDueToday(task.dueDate);
-    const pColor  = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.Medium;
-    const badge   = SOURCE_BADGE[task.source] || '<span class="source-badge badge-local">' + esc(task.source.toUpperCase()) + '</span>';
-    const titleCell = task.url
+  var rows = filtered.map(function(task) {
+    var overdue = isOverdue(task.dueDate);
+    var today_  = isDueToday(task.dueDate);
+    var pColor  = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.Medium;
+    var badge   = SOURCE_BADGE[task.source] || '<span class="source-badge badge-local">' + esc(task.source.toUpperCase()) + '</span>';
+    var titleCell = task.url
       ? '<a class="task-link" href="' + esc(task.url) + '" target="_blank" rel="noreferrer">' + esc(task.title) + '</a>'
       : esc(task.title);
-    let dueCellContent = task.dueDate ? formatDate(task.dueDate) : '<span class="text-muted">&mdash;</span>';
-    let dueClass = '';
+    var dueCellContent = task.dueDate ? formatDate(task.dueDate) : '<span class="text-muted">&mdash;</span>';
+    var dueClass = '';
     if (overdue)      { dueCellContent = '&#x26A0; ' + formatDate(task.dueDate); dueClass = 'due-overdue'; }
     else if (today_)  { dueCellContent = '&#x23F0; ' + formatDate(task.dueDate); dueClass = 'due-today'; }
+
+    // Action buttons for local tasks
+    var actions = '';
+    if (task.source === 'local') {
+      actions = '<td style="width:80px;"><div class="task-actions">' +
+        '<button class="task-action-btn" title="Rediger" onclick="openEditModal(\'' + esc(task.id) + '\')">&#x270E;</button>' +
+        '<button class="task-action-btn complete" title="Fullf\u00F8r" onclick="completeTask(\'' + esc(task.id) + '\')">&#x2713;</button>' +
+        '<button class="task-action-btn delete" title="Slett" onclick="deleteTask(\'' + esc(task.id) + '\')">&#x2715;</button>' +
+        '</div></td>';
+    } else {
+      actions = '<td style="width:80px;"></td>';
+    }
 
     return '<tr class="' + (overdue ? 'overdue' : '') + '">' +
       '<td>' + badge + '</td>' +
@@ -1025,6 +1200,7 @@ function renderTasks() {
       '<td><span class="priority-dot" style="background:' + pColor + '"></span><span style="font-size:12.5px;color:var(--text-muted);">' + esc(task.priority) + '</span></td>' +
       '<td><span style="font-size:12px;background:var(--bg);padding:2px 8px;border-radius:3px;">' + esc(task.status) + '</span></td>' +
       '<td class="' + dueClass + '" style="font-size:13px;white-space:nowrap;">' + dueCellContent + '</td>' +
+      actions +
       '</tr>';
   }).join('');
 
@@ -1038,23 +1214,24 @@ function renderTasks() {
     '<th style="width:110px;">PRIORITET</th>' +
     '<th style="width:130px;">STATUS</th>' +
     '<th style="width:130px;">FORFALLSDATO</th>' +
+    '<th style="width:80px;"></th>' +
     '</tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
     '</table></div>';
 }
 
 // ─── Add Local Task ───────────────────────────────────────────────────────────
-function openAddModal()  { document.getElementById('addModal').classList.remove('hidden'); }
+function openAddModal()  { document.getElementById('addModal').classList.remove('hidden'); document.getElementById('newTitle').focus(); }
 function closeAddModal() {
   document.getElementById('addModal').classList.add('hidden');
-  ['newTitle','newProject','newDueDate','newNotes'].forEach(id => document.getElementById(id).value = '');
+  ['newTitle','newProject','newDueDate','newNotes'].forEach(function(id) { document.getElementById(id).value = ''; });
   document.getElementById('newPriority').value = 'Medium';
 }
 function addLocalTask() {
-  const title = document.getElementById('newTitle').value.trim();
+  var title = document.getElementById('newTitle').value.trim();
   if (!title) { alert('Skriv inn en oppgavetittel.'); return; }
-  const task = {
-    id: 'local-' + Date.now(), source: 'local', key: null, title,
+  var task = {
+    id: 'local-' + Date.now(), source: 'local', key: null, title: title,
     status:    'Til behandling',
     priority:  document.getElementById('newPriority').value,
     dueDate:   document.getElementById('newDueDate').value || null,
@@ -1062,14 +1239,77 @@ function addLocalTask() {
     issueType: 'Oppgave', url: null,
     notes:     document.getElementById('newNotes').value.trim(),
   };
-  localTasks = [task, ...localTasks];
-  localStorage.setItem('tm_local_tasks', JSON.stringify(localTasks));
+  localTasks = [task].concat(localTasks);
+  saveLocalTasks();
   closeAddModal();
   renderTasks();
+  showToast('Oppgave lagt til!', 'success');
 }
 
+// ─── Edit Local Task ──────────────────────────────────────────────────────────
+function openEditModal(taskId) {
+  var task = localTasks.find(function(t) { return t.id === taskId; });
+  if (!task) return;
+  document.getElementById('editTaskId').value = taskId;
+  document.getElementById('editTitle').value = task.title || '';
+  document.getElementById('editProject').value = task.project || '';
+  document.getElementById('editPriority').value = task.priority || 'Medium';
+  document.getElementById('editDueDate').value = task.dueDate || '';
+  document.getElementById('editStatus').value = task.status || 'Til behandling';
+  document.getElementById('editNotes').value = task.notes || '';
+  document.getElementById('editModal').classList.remove('hidden');
+  document.getElementById('editTitle').focus();
+}
+function closeEditModal() {
+  document.getElementById('editModal').classList.add('hidden');
+}
+function saveEditTask() {
+  var taskId = document.getElementById('editTaskId').value;
+  var idx = localTasks.findIndex(function(t) { return t.id === taskId; });
+  if (idx === -1) return;
+  localTasks[idx].title = document.getElementById('editTitle').value.trim() || localTasks[idx].title;
+  localTasks[idx].project = document.getElementById('editProject').value.trim() || 'Personlig';
+  localTasks[idx].priority = document.getElementById('editPriority').value;
+  localTasks[idx].dueDate = document.getElementById('editDueDate').value || null;
+  localTasks[idx].status = document.getElementById('editStatus').value;
+  localTasks[idx].notes = document.getElementById('editNotes').value.trim();
+  saveLocalTasks();
+  closeEditModal();
+  renderTasks();
+  showToast('Oppgave oppdatert!', 'success');
+}
+
+// ─── Delete / Complete Local Task ─────────────────────────────────────────────
+function deleteTask(taskId) {
+  if (!confirm('Slett denne oppgaven?')) return;
+  localTasks = localTasks.filter(function(t) { return t.id !== taskId; });
+  saveLocalTasks();
+  renderTasks();
+  showToast('Oppgave slettet', 'info');
+}
+function completeTask(taskId) {
+  var idx = localTasks.findIndex(function(t) { return t.id === taskId; });
+  if (idx === -1) return;
+  localTasks[idx].status = 'Fullf\u00F8rt';
+  saveLocalTasks();
+  renderTasks();
+  showToast('Oppgave fullf\u00F8rt!', 'success');
+}
+
+// ─── Modal click-outside-to-close ─────────────────────────────────────────────
 document.getElementById('addModal').addEventListener('click', function(e) {
   if (e.target === this) closeAddModal();
+});
+document.getElementById('editModal').addEventListener('click', function(e) {
+  if (e.target === this) closeEditModal();
+});
+
+// ─── Keyboard shortcuts ───────────────────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeAddModal();
+    closeEditModal();
+  }
 });
 </script>
 </body>
